@@ -1,6 +1,6 @@
 /**
- * MY HUB PRO — JAVASCRIPT APP CONTROLLER
- * Comprehensive Gym Tracker, Rest Timer, Plate Calculator, PR Engine & Super App Hub
+ * MY HUB PRO — JAVASCRIPT APP CONTROLLER (v3)
+ * Full Workout LifeCycle, Background Notifications, Rest Timer & Pro Gym Tracker
  */
 
 // --- Comprehensive 40+ Exercise Library ---
@@ -116,12 +116,13 @@ class AppState {
   constructor() {
     this.routines = this.load('hub_routines', DEFAULT_ROUTINES);
     this.currentRoutineId = this.load('hub_current_routine_id', 'push');
-    this.exerciseMemory = this.load('hub_exercise_memory', {}); // saves last weight & reps per exercise
-    this.exerciseRecords = this.load('hub_exercise_records', {}); // Best PR weight & 1RM
-    this.exerciseNotes = this.load('hub_exercise_notes', {}); // Tech notes per exercise
+    this.isWorkoutActive = this.load('hub_is_workout_active', false);
+    this.exerciseMemory = this.load('hub_exercise_memory', {});
+    this.exerciseRecords = this.load('hub_exercise_records', {});
+    this.exerciseNotes = this.load('hub_exercise_notes', {});
     this.activeWorkout = this.load('hub_active_workout', null);
     this.history = this.load('hub_history', []);
-    this.bodyWeightLogs = this.load('hub_body_weights', []); // [{ date: '2026-11-09', weight: 68.5 }]
+    this.bodyWeightLogs = this.load('hub_body_weights', []);
     this.tasks = this.load('hub_tasks', [
       { id: 't1', title: 'Hoàn thành buổi tập gym hôm nay', priority: 'high', done: false, date: new Date().toLocaleDateString('vi-VN') },
       { id: 't2', title: 'Kiểm tra tin nhắn công việc & email', priority: 'medium', done: false, date: new Date().toLocaleDateString('vi-VN') }
@@ -139,7 +140,7 @@ class AppState {
     this.currentCalYear = new Date().getFullYear();
 
     if (!this.activeWorkout) {
-      this.initWorkoutFromRoutine(this.currentRoutineId);
+      this.initWorkoutFromRoutine(this.currentRoutineId, false);
     }
   }
 
@@ -160,7 +161,7 @@ class AppState {
     }
   }
 
-  initWorkoutFromRoutine(routineId) {
+  initWorkoutFromRoutine(routineId, startNow = false) {
     const routine = this.routines.find(r => r.id === routineId) || this.routines[0];
     this.currentRoutineId = routine.id;
     this.save('hub_current_routine_id', this.currentRoutineId);
@@ -172,7 +173,7 @@ class AppState {
       for (let i = 1; i <= numSets; i++) {
         sets.push({
           setNum: i,
-          tag: String(i), // '1', '2', 'W', 'D', 'F'
+          tag: String(i),
           weight: mem ? mem.weight : (ex.defaultWeight || 20),
           reps: mem ? mem.reps : (ex.defaultReps || 10),
           completed: false,
@@ -190,17 +191,19 @@ class AppState {
     this.activeWorkout = {
       routineId: routine.id,
       routineName: routine.name,
-      startTime: Date.now(),
+      startTime: startNow ? Date.now() : null,
       exercises: exercises
     };
     this.sessionPRsCount = 0;
+    this.isWorkoutActive = startNow;
+    this.save('hub_is_workout_active', this.isWorkoutActive);
     this.save('hub_active_workout', this.activeWorkout);
   }
 }
 
 const state = new AppState();
 
-// --- Audio Synthesizer (Zero external files needed) ---
+// --- Audio Synthesizer ---
 let audioCtx = null;
 function playBeep(freq = 880, duration = 0.15, type = 'sine') {
   if (!state.settings.sound) return;
@@ -239,19 +242,47 @@ function playCelebrationFanfare() {
   if (state.settings.vibrate && 'vibrate' in navigator) {
     navigator.vibrate([100, 50, 150, 50, 250]);
   }
-  // Arpeggio C5 -> E5 -> G5 -> C6
   playBeep(523.25, 0.1);
   setTimeout(() => playBeep(659.25, 0.1), 120);
   setTimeout(() => playBeep(783.99, 0.1), 240);
   setTimeout(() => playBeep(1046.50, 0.3), 360);
 }
 
-// --- Rest Timer & Stopwatch Controller ---
+// Dispatch System/Banner Notification to iPhone (even if app is in background/Spotify)
+function sendRestTimerSystemNotification() {
+  const title = '⏱️ HẾT GIỜ NGHỈ!';
+  const body = 'Đã hết giờ nghỉ giữa hiệp! Vào hiệp tiếp theo thôi bạn ơi 💪🔥';
+
+  // 1. Through ServiceWorker (preferred for iOS PWA)
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'SHOW_TIMER_NOTIFICATION',
+      title: title,
+      body: body
+    });
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    // 2. Standard Notification fallback
+    try {
+      new Notification(title, {
+        body: body,
+        icon: './icon.svg',
+        badge: './icon.svg',
+        tag: 'gym-rest-timer'
+      });
+    } catch (e) {
+      console.warn('Notification error', e);
+    }
+  }
+}
+
+// --- Rest Timer Controller with Target Timestamp ---
 class TimerController {
   constructor() {
     this.totalSeconds = state.settings.defaultRest || 90;
     this.remainingSeconds = this.totalSeconds;
+    this.targetEndTime = 0;
     this.timerInterval = null;
+    this.bgTimeout = null;
     this.isRunning = false;
 
     // Stopwatch state
@@ -274,17 +305,30 @@ class TimerController {
       this.remainingSeconds = seconds;
     }
     clearInterval(this.timerInterval);
+    clearTimeout(this.bgTimeout);
+
     this.isRunning = true;
+    this.targetEndTime = Date.now() + this.remainingSeconds * 1000;
     this.showOverlay();
     this.render();
 
+    // Schedule background notification trigger
+    if ('Notification' in window && Notification.permission === 'granted') {
+      this.bgTimeout = setTimeout(() => {
+        sendRestTimerSystemNotification();
+      }, this.remainingSeconds * 1000);
+    }
+
     this.timerInterval = setInterval(() => {
-      this.remainingSeconds--;
-      if (this.remainingSeconds <= 3 && this.remainingSeconds > 0) {
-        // Warning beeps on last 3 seconds
+      const now = Date.now();
+      const diffSec = Math.max(0, Math.ceil((this.targetEndTime - now) / 1000));
+      this.remainingSeconds = diffSec;
+
+      if (diffSec <= 3 && diffSec > 0) {
         playBeep(440, 0.08);
       }
-      if (this.remainingSeconds <= 0) {
+
+      if (diffSec <= 0) {
         this.finish();
       } else {
         this.render();
@@ -294,6 +338,7 @@ class TimerController {
 
   stop() {
     clearInterval(this.timerInterval);
+    clearTimeout(this.bgTimeout);
     this.isRunning = false;
     this.quickBadge.classList.add('hidden');
     this.hideOverlay();
@@ -302,11 +347,32 @@ class TimerController {
   finish() {
     this.stop();
     playTimerFinishAlarm();
+    sendRestTimerSystemNotification();
+  }
+
+  // Catch-up when user returns from Spotify or lockscreen
+  syncFromBackground() {
+    if (!this.isRunning) return;
+    const now = Date.now();
+    const diffSec = Math.ceil((this.targetEndTime - now) / 1000);
+    if (diffSec <= 0) {
+      this.finish();
+    } else {
+      this.remainingSeconds = diffSec;
+      this.render();
+    }
   }
 
   adjustTime(secondsChange) {
     this.remainingSeconds = Math.max(5, this.remainingSeconds + secondsChange);
+    this.targetEndTime = Date.now() + this.remainingSeconds * 1000;
     this.totalSeconds = Math.max(this.remainingSeconds, this.totalSeconds);
+    clearTimeout(this.bgTimeout);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      this.bgTimeout = setTimeout(() => {
+        sendRestTimerSystemNotification();
+      }, this.remainingSeconds * 1000);
+    }
     this.render();
   }
 
@@ -379,11 +445,17 @@ class TimerController {
 
 const restTimer = new TimerController();
 
+// Catch-up on App Resume from Spotify / Home Screen
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    restTimer.syncFromBackground();
+  }
+});
+
 // --- 1RM & PR Evaluation Helper (Epley formula) ---
 function calc1RM(weight, reps) {
   if (!weight || weight <= 0) return 0;
   if (!reps || reps <= 1) return weight;
-  // Epley formula: 1RM = weight * (1 + reps / 30)
   return Math.round(weight * (1 + reps / 30));
 }
 
@@ -433,23 +505,63 @@ document.addEventListener('DOMContentLoaded', () => {
       if (pane) pane.classList.add('active');
       if (pageTitle && tabTitles[targetTab]) pageTitle.textContent = tabTitles[targetTab];
 
-      if (targetTab === 'tab-history') {
-        renderHistoryTab();
-      }
-      if (targetTab === 'tab-tasks') {
-        renderTasks();
-      }
+      if (targetTab === 'tab-history') renderHistoryTab();
+      if (targetTab === 'tab-tasks') renderTasks();
     });
   });
 
-  // 3. Render Initial Gym View
+  // 3. Render Workout Views (Idle vs Active)
+  updateWorkoutStateUI();
   renderWorkoutView();
   initWorkoutElapsedTimer();
   renderTasks();
   initNotes();
   initSettings();
+  updateNotificationStatusBadge();
 
-  // 4. Quick Timer Header Button
+  // 4. Start Workout Button (from Idle Hero)
+  document.getElementById('startWorkoutBtn').addEventListener('click', () => {
+    state.isWorkoutActive = true;
+    state.activeWorkout.startTime = Date.now();
+    state.save('hub_is_workout_active', true);
+    state.save('hub_active_workout', state.activeWorkout);
+
+    if (state.settings.vibrate && 'vibrate' in navigator) navigator.vibrate(80);
+    playBeep(880, 0.15);
+
+    updateWorkoutStateUI();
+    renderWorkoutView();
+  });
+
+  // Cancel Workout Button
+  document.getElementById('cancelWorkoutBtn').addEventListener('click', () => {
+    if (confirm('Hủy buổi tập hiện tại? Dữ liệu hiệp vừa tập sẽ không được lưu.')) {
+      state.isWorkoutActive = false;
+      state.save('hub_is_workout_active', false);
+      state.initWorkoutFromRoutine(state.currentRoutineId, false);
+      updateWorkoutStateUI();
+      renderWorkoutView();
+    }
+  });
+
+  // 5. Notification Permission Request
+  document.getElementById('requestNotifBtn').addEventListener('click', async () => {
+    if (!('Notification' in window)) {
+      alert('Trình duyệt hiện tại không hỗ trợ Notification. Trên iPhone, bạn nhớ bấm "Thêm vào MH chính" để dùng đầy đủ thông báo nhé!');
+      return;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      updateNotificationStatusBadge();
+      if (perm === 'granted') {
+        alert('✅ Đã bật thông báo thành công! Khi hết giờ nghỉ, iPhone sẽ phát banner nhắc nhở dù bạn đang nghe nhạc.');
+      }
+    } catch (e) {
+      console.warn('Request notification failed', e);
+    }
+  });
+
+  // 6. Quick Timer Header Button
   document.getElementById('quickTimerBtn').addEventListener('click', () => {
     restTimer.showOverlay();
     if (!restTimer.isRunning) {
@@ -480,7 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Timer Mode Toggle (Countdown vs Stopwatch)
+  // Timer Mode Toggle
   const modeCountdownBtn = document.getElementById('modeCountdownBtn');
   const modeStopwatchBtn = document.getElementById('modeStopwatchBtn');
   const countdownPane = document.getElementById('countdownPane');
@@ -503,14 +615,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('swToggleBtn').addEventListener('click', () => restTimer.toggleStopwatch());
   document.getElementById('swResetBtn').addEventListener('click', () => restTimer.resetStopwatch());
 
-  // 5. Change Routine Modal
+  // 7. Change Routine Modals
   const routineModal = document.getElementById('routineModal');
-  document.getElementById('changeRoutineBtn').addEventListener('click', () => {
+  const openRoutineHandler = () => {
     renderRoutineModalOptions();
     routineModal.classList.remove('hidden');
-  });
+  };
+  document.getElementById('changeRoutineBtn').addEventListener('click', openRoutineHandler);
+  document.getElementById('changeRoutineBtnIdle').addEventListener('click', openRoutineHandler);
 
-  // Create new blank routine
+  // Create new routine
   document.getElementById('createNewRoutineBtn').addEventListener('click', () => {
     const name = document.getElementById('newRoutineNameInput').value.trim();
     if (!name) return alert('Vui lòng nhập tên lịch tập!');
@@ -521,14 +635,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     state.routines.push(newRoutine);
     state.save('hub_routines', state.routines);
-    state.initWorkoutFromRoutine(newRoutine.id);
+    state.initWorkoutFromRoutine(newRoutine.id, state.isWorkoutActive);
+    updateWorkoutStateUI();
     renderWorkoutView();
     routineModal.classList.add('hidden');
     document.getElementById('newRoutineNameInput').value = '';
     alert(`Đã tạo lịch "${name}". Bạn hãy bấm "+ Thêm bài" để nạp các bài tập vào nhé!`);
   });
 
-  // Save current workout as a new preset routine
+  // Save current workout as preset routine
   document.getElementById('saveCurrentAsRoutineBtn').addEventListener('click', () => {
     const name = prompt('Nhập tên để lưu các bài tập hiện tại thành lịch mẫu:', state.activeWorkout.routineName + ' (Bản sao)');
     if (!name) return;
@@ -551,27 +666,17 @@ document.addEventListener('DOMContentLoaded', () => {
     alert(`✅ Đã lưu giáo án "${name}" vào danh sách!`);
   });
 
-  // Reset Workout Timer
-  document.getElementById('resetWorkoutTimerBtn').addEventListener('click', () => {
-    if (confirm('Đặt lại đồng hồ thời gian buổi tập về 00:00?')) {
-      state.activeWorkout.startTime = Date.now();
-      state.save('hub_active_workout', state.activeWorkout);
-    }
-  });
-
-  // 6. 40+ Exercise Library Modal
+  // 8. Exercise Library Modal
   const addExerciseModal = document.getElementById('addExerciseModal');
   document.getElementById('addExerciseToWorkoutBtn').addEventListener('click', () => {
     renderExerciseLibrary();
     addExerciseModal.classList.remove('hidden');
   });
 
-  // Search in library
   document.getElementById('searchExerciseInput').addEventListener('input', (e) => {
     renderExerciseLibrary(e.target.value.trim().toLowerCase());
   });
 
-  // Filter chips
   document.querySelectorAll('.muscle-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       document.querySelectorAll('.muscle-chip').forEach(c => c.classList.remove('active'));
@@ -580,27 +685,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Add custom typed exercise
   document.getElementById('confirmAddExerciseBtn').addEventListener('click', () => {
     const name = document.getElementById('newExerciseName').value.trim();
     const muscle = document.getElementById('newExerciseMuscle').value;
-    if (!name) {
-      alert('Vui lòng nhập tên bài tập!');
-      return;
-    }
+    if (!name) return alert('Vui lòng nhập tên bài tập!');
     addNewExerciseToCurrentWorkout(name, muscle);
     document.getElementById('newExerciseName').value = '';
     addExerciseModal.classList.add('hidden');
   });
 
-  // 7. Plate Calculator Modal
+  // 9. Plate Calculator Modal
   const plateCalcModal = document.getElementById('plateCalcModal');
   document.getElementById('openPlateCalcBtn').addEventListener('click', () => {
     updatePlateCalculator();
     plateCalcModal.classList.remove('hidden');
   });
 
-  // Plate Calculator Controls
   const targetWeightInput = document.getElementById('plateTargetWeight');
   document.getElementById('plateMinus5').addEventListener('click', () => {
     targetWeightInput.value = Math.max(0, (parseFloat(targetWeightInput.value) || 0) - 5);
@@ -630,12 +730,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 8. Finish Workout
+  // 10. Finish Workout
   document.getElementById('finishWorkoutBtn').addEventListener('click', () => {
     finishWorkout();
   });
 
-  // 9. Calendar Month Nav
+  // 11. Calendar Month Nav
   document.getElementById('calPrevMonthBtn').addEventListener('click', () => {
     state.currentCalMonth--;
     if (state.currentCalMonth < 0) {
@@ -654,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCalendarGrid();
   });
 
-  // 10. Bodyweight Save
+  // 12. Bodyweight Save
   document.getElementById('saveBodyWeightBtn').addEventListener('click', () => {
     const input = document.getElementById('bodyWeightInput');
     const val = parseFloat(input.value);
@@ -674,14 +774,14 @@ document.addEventListener('DOMContentLoaded', () => {
     alert(`⚖️ Đã lưu cân nặng hôm nay: ${val} kg`);
   });
 
-  // 11. Modal Closers
+  // 13. Modal Closers
   document.querySelectorAll('.modal-backdrop, .close-modal-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.target.closest('.modal').classList.add('hidden');
     });
   });
 
-  // 12. Add Task Modal
+  // 14. Add Task Modal
   const addTaskModal = document.getElementById('addTaskModal');
   document.getElementById('openNewTaskModal').addEventListener('click', () => {
     document.getElementById('newTaskTitle').value = '';
@@ -712,11 +812,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 13. Export & Import Backup
+  // 15. Export & Import Backup
   document.getElementById('exportDataBtn').addEventListener('click', exportBackupData);
   document.getElementById('importDataInput').addEventListener('change', importBackupData);
 
-  // 14. PWA Service Worker
+  // 16. PWA Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(err => {
       console.warn('SW registration failed:', err);
@@ -724,11 +824,52 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+function updateNotificationStatusBadge() {
+  const badge = document.getElementById('notifStatusBadge');
+  const btn = document.getElementById('requestNotifBtn');
+  if (!badge) return;
+
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      badge.textContent = '✓ Đã kích hoạt';
+      badge.classList.add('granted');
+      if (btn) btn.textContent = '🔔 Thông báo đã sẵn sàng';
+    } else if (Notification.permission === 'denied') {
+      badge.textContent = '✕ Đã chặn';
+      badge.classList.remove('granted');
+    } else {
+      badge.textContent = 'Chưa bật';
+      badge.classList.remove('granted');
+    }
+  } else {
+    badge.textContent = 'Không hỗ trợ';
+  }
+}
+
+function updateWorkoutStateUI() {
+  const idleHero = document.getElementById('idleWorkoutHero');
+  const activeHero = document.getElementById('activeWorkoutHero');
+  const finishBar = document.getElementById('finishWorkoutBar');
+
+  const currentRoutine = state.activeWorkout;
+  document.getElementById('idleRoutineTitle').textContent = currentRoutine.routineName;
+  document.getElementById('idleRoutineMeta').textContent = `${currentRoutine.exercises.length} bài tập • Dự kiến 45-60 phút`;
+  document.getElementById('currentRoutineName').textContent = currentRoutine.routineName;
+
+  if (state.isWorkoutActive) {
+    idleHero.classList.add('hidden');
+    activeHero.classList.remove('hidden');
+    finishBar.classList.remove('hidden');
+  } else {
+    idleHero.classList.remove('hidden');
+    activeHero.classList.add('hidden');
+    finishBar.classList.add('hidden');
+  }
+}
+
 // --- Gym View & Sets Table Logic ---
 function renderWorkoutView() {
   const currentRoutine = state.activeWorkout;
-  document.getElementById('currentRoutineName').textContent = currentRoutine.routineName;
-
   const container = document.getElementById('exerciseList');
   container.innerHTML = '';
 
@@ -752,7 +893,6 @@ function renderWorkoutView() {
       </div>
     `;
 
-    // Click on exercise header opens Exercise Details & 1RM
     cardHeader.querySelector('.exercise-title-group').addEventListener('click', () => {
       openExerciseDetailModal(ex.name);
     });
@@ -811,7 +951,7 @@ function renderWorkoutView() {
         <button class="btn-check-set ${set.completed ? 'checked' : ''}">${set.completed ? '✓' : ''}</button>
       `;
 
-      // Cycle Set Tag on Badge click: normal -> W -> D -> F -> normal
+      // Cycle Set Tag on Badge click
       const tagBadge = row.querySelector('.set-tag-badge');
       tagBadge.addEventListener('click', () => {
         if (set.tag === String(setIndex + 1)) set.tag = 'W';
@@ -868,8 +1008,15 @@ function renderWorkoutView() {
         updateWorkoutStatsOnly();
       });
 
-      // CHECK SET COMPLETE & PR EVALUATION
+      // CHECK SET COMPLETE & AUTO START WORKOUT IF NOT YET STARTED
       checkBtn.addEventListener('click', () => {
+        if (!state.isWorkoutActive) {
+          state.isWorkoutActive = true;
+          state.activeWorkout.startTime = Date.now();
+          state.save('hub_is_workout_active', true);
+          updateWorkoutStateUI();
+        }
+
         set.completed = !set.completed;
         if (set.completed) {
           row.classList.add('completed');
@@ -880,7 +1027,7 @@ function renderWorkoutView() {
           state.exerciseMemory[ex.name] = { weight: set.weight, reps: set.reps };
           state.save('hub_exercise_memory', state.exerciseMemory);
 
-          // Check for PR (Personal Record)
+          // Check for PR
           const est1RM = calc1RM(set.weight, set.reps);
           const prevRecord = state.exerciseRecords[ex.name] || { bestWeight: 0, best1RM: 0 };
 
@@ -894,7 +1041,6 @@ function renderWorkoutView() {
             state.sessionPRsCount++;
             showPRToast(ex.name, set.weight, set.reps, est1RM);
           } else {
-            // Standard haptic & beep
             if (state.settings.vibrate && 'vibrate' in navigator) navigator.vibrate(40);
             playBeep(660, 0.08);
           }
@@ -1018,15 +1164,21 @@ function finishWorkout() {
   playCelebrationFanfare();
   alert(`🎉 Tuyệt vời! Bạn đã hoàn thành ${totalDone} hiệp, nâng tổng cộng ${totalKg} kg (${state.sessionPRsCount} kỷ lục PR)!`);
 
-  // Reset new workout from same routine
-  state.initWorkoutFromRoutine(state.currentRoutineId);
+  // Reset to idle state
+  state.isWorkoutActive = false;
+  state.save('hub_is_workout_active', false);
+  state.initWorkoutFromRoutine(state.currentRoutineId, false);
+  updateWorkoutStateUI();
   renderWorkoutView();
 }
 
 function initWorkoutElapsedTimer() {
   const el = document.getElementById('activeTimeElapsed');
   setInterval(() => {
-    if (!state.activeWorkout || !state.activeWorkout.startTime) return;
+    if (!state.isWorkoutActive || !state.activeWorkout || !state.activeWorkout.startTime) {
+      el.textContent = '00:00';
+      return;
+    }
     const diffSec = Math.floor((Date.now() - state.activeWorkout.startTime) / 1000);
     const m = Math.floor(diffSec / 60);
     const s = diffSec % 60;
@@ -1070,7 +1222,6 @@ function updatePlateCalculator() {
   const targetWeight = parseFloat(document.getElementById('plateTargetWeight').value) || 0;
   const barWeight = state.settings.barWeight !== undefined ? state.settings.barWeight : 20;
 
-  // Active bar weight buttons
   document.querySelectorAll('.bar-opt-btn').forEach(btn => {
     btn.classList.toggle('active', parseFloat(btn.getAttribute('data-bar')) === barWeight);
   });
@@ -1079,7 +1230,6 @@ function updatePlateCalculator() {
   const perSide = weightNeeded / 2;
   document.getElementById('platePerSideLabel').textContent = `Mỗi bên đòn cần lắp: ${perSide} kg`;
 
-  // Standard Olympic Plate inventory (pairs)
   const plateSizes = [25, 20, 15, 10, 5, 2.5, 1.25];
   const platesCount = {};
   let remainder = perSide;
@@ -1092,7 +1242,6 @@ function updatePlateCalculator() {
     }
   });
 
-  // Render Barbell Visual
   const graphic = document.getElementById('barbellGraphic');
   graphic.innerHTML = '<div class="bb-bar"></div><div class="bb-collar"></div>';
 
@@ -1125,7 +1274,6 @@ function openExerciseDetailModal(exerciseName) {
   document.getElementById('detailBest1RM').textContent = `${record.best1RM || 0} kg`;
   document.getElementById('detailBestVolume').textContent = state.exerciseMemory[exerciseName] ? `${state.exerciseMemory[exerciseName].weight}kg × ${state.exerciseMemory[exerciseName].reps}` : '-';
 
-  // Notes
   const noteInput = document.getElementById('detailExNoteInput');
   noteInput.value = state.exerciseNotes[exerciseName] || '';
   noteInput.onchange = () => {
@@ -1133,7 +1281,6 @@ function openExerciseDetailModal(exerciseName) {
     state.save('hub_exercise_notes', state.exerciseNotes);
   };
 
-  // Draw SVG Progress Chart from History
   renderExerciseProgressionChart(exerciseName);
   modal.classList.remove('hidden');
 }
@@ -1143,7 +1290,6 @@ function renderExerciseProgressionChart(exerciseName) {
   wrap.innerHTML = '';
 
   const dataPoints = [];
-  // Scan history reverse
   [...state.history].reverse().forEach(h => {
     if (h.exercisesSummary) {
       const found = h.exercisesSummary.find(e => e.name === exerciseName);
@@ -1189,7 +1335,6 @@ function renderExerciseProgressionChart(exerciseName) {
 
 // --- Tab 3: History, Calendar Heatmap & Bodyweight ---
 function renderHistoryTab() {
-  // Lifetime KPIs
   document.getElementById('kpiTotalWorkouts').textContent = state.history.length;
   const totalVolumeAllTime = state.history.reduce((sum, h) => sum + (h.totalKg || 0), 0);
   document.getElementById('kpiTotalTons').textContent = `${totalVolumeAllTime.toLocaleString('vi-VN')} kg`;
@@ -1215,11 +1360,9 @@ function renderCalendarGrid() {
   grid.innerHTML = '';
 
   const firstDayOfMonth = new Date(state.currentCalYear, state.currentCalMonth, 1).getDay();
-  // In Vietnam, Monday is index 0. JS getDay() has Sunday=0, Monday=1
   const startOffset = (firstDayOfMonth === 0 ? 7 : firstDayOfMonth) - 1;
   const daysInMonth = new Date(state.currentCalYear, state.currentCalMonth + 1, 0).getDate();
 
-  // Set of dates where user worked out
   const workoutDates = new Set(
     state.history.filter(h => h.isoDate).map(h => h.isoDate)
   );
@@ -1228,7 +1371,6 @@ function renderCalendarGrid() {
   const isCurrentMonth = today.getMonth() === state.currentCalMonth && today.getFullYear() === state.currentCalYear;
   const todayDate = today.getDate();
 
-  // Blank filler cells before start of month
   for (let i = 0; i < startOffset; i++) {
     const empty = document.createElement('div');
     empty.className = 'cal-cell empty';
@@ -1236,7 +1378,6 @@ function renderCalendarGrid() {
     grid.appendChild(empty);
   }
 
-  // Days of Month
   for (let d = 1; d <= daysInMonth; d++) {
     const cell = document.createElement('div');
     cell.className = 'cal-cell';
@@ -1279,7 +1420,6 @@ function renderBodyWeightSection() {
     return;
   }
 
-  // SVG Sparkline
   const weights = logs.map(l => l.weight);
   const minW = Math.min(...weights) - 0.5;
   const maxW = Math.max(...weights) + 0.5;
@@ -1347,7 +1487,8 @@ function renderRoutineModalOptions() {
     `;
     item.addEventListener('click', () => {
       if (confirm(`Đổi sang giáo án "${r.name}"? Dữ liệu hiệp hiện tại chưa lưu sẽ được làm mới.`)) {
-        state.initWorkoutFromRoutine(r.id);
+        state.initWorkoutFromRoutine(r.id, state.isWorkoutActive);
+        updateWorkoutStateUI();
         renderWorkoutView();
         document.getElementById('routineModal').classList.add('hidden');
       }
@@ -1467,7 +1608,7 @@ function initSettings() {
 
 function exportBackupData() {
   const fullData = {
-    version: '2.0-pro',
+    version: '3.0-pro',
     exportDate: new Date().toISOString(),
     routines: state.routines,
     exerciseMemory: state.exerciseMemory,
@@ -1484,7 +1625,7 @@ function exportBackupData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `my_hub_pro_backup_${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `my_hub_v3_backup_${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

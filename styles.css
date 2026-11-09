@@ -245,7 +245,98 @@ body {
   transform: scale(1.1);
 }
 
-/* Workout Card & Stats */
+/* ================= WORKOUT HERO (IDLE vs ACTIVE) ================= */
+
+/* 1A. IDLE WORKOUT HERO */
+.idle-workout-card {
+  background: linear-gradient(145deg, #162438 0%, #0d1522 100%);
+  border: 1.5px solid rgba(16, 185, 129, 0.4);
+  border-radius: 20px;
+  padding: 22px 18px;
+  margin-bottom: 16px;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(16, 185, 129, 0.15);
+  animation: fadeIn 0.3s ease;
+}
+
+.idle-badge {
+  display: inline-block;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--accent-green);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+}
+
+.idle-routine-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+
+.idle-routine-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+
+.idle-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-start-workout {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  border: none;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.5px;
+  padding: 16px 24px;
+  border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+}
+
+.btn-start-workout:active {
+  transform: scale(0.97);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.start-icon {
+  font-size: 18px;
+}
+
+.btn-pill-sub {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: center;
+}
+
+.btn-pill-sub:active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* 1B. ACTIVE WORKOUT HERO */
 .workout-card {
   background: linear-gradient(145deg, #162032 0%, #111a29 100%);
   border: 1px solid var(--border-color);
@@ -253,6 +344,33 @@ body {
   padding: 16px;
   margin-bottom: 14px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.live-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+  animation: pulseDot 1.5s infinite;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.live-text {
+  color: #f87171 !important;
+  font-weight: 700 !important;
 }
 
 .workout-header {
@@ -353,6 +471,10 @@ body {
 
 .btn-mini-link:active {
   color: var(--accent-cyan);
+}
+
+.text-rose {
+  color: var(--accent-rose) !important;
 }
 
 .gym-tip-bar {
@@ -687,7 +809,7 @@ body {
 }
 
 .timer-display-wrap {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .timer-number {
@@ -749,6 +871,13 @@ body {
   color: #fca5a5;
 }
 
+.timer-bg-hint {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
 /* General Buttons */
 .btn-primary {
   background: linear-gradient(135deg, var(--accent-green) 0%, #059669 100%);
@@ -789,6 +918,10 @@ body {
 .action-footer {
   margin-top: 8px;
   margin-bottom: 20px;
+}
+
+.hidden {
+  display: none !important;
 }
 
 /* Tab 3: KPI Summary & Calendar Heatmap & Bodyweight */
@@ -1175,7 +1308,28 @@ body {
   font-weight: 600;
 }
 
-/* Tab 2 & 4 Existing Styles */
+/* Notification & Settings */
+.notif-card {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.notif-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 8px;
+  margin-left: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.notif-badge.granted {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+/* Tab 2: Tasks & Notes */
 .task-summary-card {
   background: linear-gradient(145deg, #1f2937 0%, #111827 100%);
   border: 1px solid var(--border-color);

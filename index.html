@@ -19,7 +19,7 @@
 <body>
   <div id="app" class="app-container">
 
-    <!-- PR / Notification Toast -->
+    <!-- PR Toast Notification -->
     <div id="prToast" class="pr-toast hidden">
       <span class="pr-toast-icon">🏆</span>
       <div class="pr-toast-text">
@@ -51,11 +51,29 @@
 
       <!-- ================= TAB 1: GYM PRO ================= -->
       <section id="tab-gym" class="tab-pane active">
-        <!-- Workout Selector / Active Banner -->
-        <div class="workout-card">
+
+        <!-- 1A. HERO: CHƯA BẮT ĐẦU BUỔI TẬP (IDLE STATE) -->
+        <div id="idleWorkoutHero" class="idle-workout-card">
+          <div class="idle-badge">⚡ SẴN SÀNG TẬP LUYỆN</div>
+          <h2 id="idleRoutineTitle" class="idle-routine-name">Push Day (Ngực - Vai - Tay sau)</h2>
+          <p id="idleRoutineMeta" class="idle-routine-meta">5 bài tập • Dự kiến 45-60 phút</p>
+          
+          <div class="idle-actions">
+            <button id="startWorkoutBtn" class="btn-start-workout">
+              <span class="start-icon">▶</span> BẮT ĐẦU BUỔI TẬP
+            </button>
+            <button id="changeRoutineBtnIdle" class="btn-pill-sub">📚 Chọn giáo án khác</button>
+          </div>
+        </div>
+
+        <!-- 1B. HERO: ĐANG TRONG BUỔI TẬP (ACTIVE STATE) -->
+        <div id="activeWorkoutHero" class="workout-card hidden">
           <div class="workout-header">
             <div style="flex: 1; padding-right: 8px;">
-              <span class="section-sub">Giáo án đang tập</span>
+              <div class="live-status-row">
+                <span class="live-dot"></span>
+                <span class="section-sub live-text">ĐANG TRONG BUỔI TẬP</span>
+              </div>
               <h2 id="currentRoutineName" class="workout-name">Push Day (Ngực - Vai - Tay sau)</h2>
             </div>
             <div class="workout-header-btns">
@@ -83,14 +101,14 @@
           </div>
 
           <div class="workout-sub-bar">
-            <button id="saveCurrentAsRoutineBtn" class="btn-mini-link">💾 Lưu các bài hiện tại thành Lịch mẫu</button>
-            <button id="resetWorkoutTimerBtn" class="btn-mini-link">🔄 Đặt lại giờ</button>
+            <button id="saveCurrentAsRoutineBtn" class="btn-mini-link">💾 Lưu thành Lịch mẫu</button>
+            <button id="cancelWorkoutBtn" class="btn-mini-link text-rose">✕ Hủy buổi này</button>
           </div>
         </div>
 
         <!-- Micro Tip -->
         <div class="gym-tip-bar">
-          <span>💡 Bấm số <strong>Hiệp</strong> để đổi <em>Khởi động (W) / Drop (D) / Failure (F)</em> • Bấm <strong>Tên bài</strong> xem biểu đồ & 1RM</span>
+          <span>💡 Bấm số <strong>Hiệp</strong> để đổi <em>Khởi động (W) / Drop (D) / Failure (F)</em> • Bấm <strong>Tên bài</strong> xem 1RM & biểu đồ</span>
         </div>
 
         <!-- Exercise List for Workout -->
@@ -103,8 +121,8 @@
           <!-- Exercise items injected by JS -->
         </div>
 
-        <!-- Finish Workout Button -->
-        <div class="action-footer">
+        <!-- Finish Workout Button (Visible when workout is active) -->
+        <div id="finishWorkoutBar" class="action-footer hidden">
           <button id="finishWorkoutBtn" class="btn-primary w-full">🎉 Hoàn Thành & Lưu Buổi Tập</button>
         </div>
       </section>
@@ -194,7 +212,7 @@
             <button id="saveBodyWeightBtn" class="btn-pill">Lưu cân nặng</button>
           </div>
           <div id="bodyWeightChartWrap" class="bw-chart-wrap">
-            <!-- SVG Chart or empty state injected by JS -->
+            <!-- SVG Chart injected by JS -->
           </div>
         </div>
 
@@ -207,19 +225,18 @@
         </div>
       </section>
 
-      <!-- ================= TAB 4: CÀI ĐẶT & SAO LƯU ================= -->
+      <!-- ================= TAB 4: CÀI ĐẶT & THÔNG BÁO ================= -->
       <section id="tab-settings" class="tab-pane">
-        <!-- iPhone Install Guide -->
-        <div class="info-card">
-          <div class="info-icon">📲</div>
+        <!-- Notification Setup Banner for Background App Surfing -->
+        <div class="info-card notif-card">
+          <div class="info-icon">🔔</div>
           <div class="info-content">
-            <h4>Cách đưa ra Màn hình chính iPhone</h4>
-            <ol class="guide-steps">
-              <li>Mở web này bằng <strong>Safari</strong> trên iPhone.</li>
-              <li>Bấm nút <strong>Chia sẻ (Share <span class="share-icon">⎋</span>)</strong> ở thanh dưới.</li>
-              <li>Cuộn xuống chọn <strong>"Thêm vào MH chính" (Add to Home Screen)</strong>.</li>
-              <li>Bấm <strong>Thêm (Add)</strong> $\rightarrow$ Mở full màn hình và dùng offline 100%!</li>
-            </ol>
+            <h4>Thông Báo Hết Giờ Nghỉ Khi Chuyển App</h4>
+            <p class="setting-desc" style="margin-bottom: 8px;">Nhận thông báo banner trên màn hình iPhone khi bạn đang mở Spotify nghe nhạc hoặc lướt app khác.</p>
+            <button id="requestNotifBtn" class="btn-pill" style="background:#2563eb; color:#fff; border-color:#3b82f6;">
+              🔔 Bật nhận thông báo iPhone
+            </button>
+            <span id="notifStatusBadge" class="notif-badge">Chưa bật</span>
           </div>
         </div>
 
@@ -323,6 +340,10 @@
             <button class="timer-chip" data-add="15">+15s</button>
             <button id="skipTimerBtn" class="timer-chip chip-skip">Xong luôn ⏩</button>
           </div>
+          <!-- Quick Background Notification notice inside Timer -->
+          <div class="timer-bg-hint" id="timerNotifHint">
+            <span>🔔 Có thể chuyển sang Spotify / lướt app khác, app sẽ báo khi hết giờ.</span>
+          </div>
         </div>
 
         <!-- Mode 2: Stopwatch (Plank / Cardio) -->
@@ -338,7 +359,8 @@
       </div>
     </div>
 
-    <!-- ================= MODAL 1: CHỌN & TẠO LỊCH TẬP (ROUTINES) ================= -->
+    <!-- ================= MODALS ================= -->
+    <!-- Modal 1: Chọn & Tạo Lịch Tập -->
     <div id="routineModal" class="modal hidden">
       <div class="modal-backdrop"></div>
       <div class="modal-sheet">
@@ -347,9 +369,7 @@
           <h3>📚 Chọn Giáo Án / Lịch Tập</h3>
           <button class="close-modal-btn">&times;</button>
         </div>
-        <div id="routineOptionsList" class="modal-content-list">
-          <!-- Injected by JS -->
-        </div>
+        <div id="routineOptionsList" class="modal-content-list"></div>
         <div class="modal-divider"></div>
         <div class="create-routine-box">
           <h4>➕ Tạo lịch tập mới trống</h4>
@@ -361,7 +381,7 @@
       </div>
     </div>
 
-    <!-- ================= MODAL 2: THƯ VIỆN 40+ BÀI TẬP & THÊM BÀI MỚI ================= -->
+    <!-- Modal 2: Thư viện 40+ Bài Tập -->
     <div id="addExerciseModal" class="modal hidden">
       <div class="modal-backdrop"></div>
       <div class="modal-sheet modal-sheet-tall">
@@ -372,7 +392,6 @@
         </div>
         <div class="modal-body">
           <input type="text" id="searchExerciseInput" class="search-input" placeholder="🔍 Tìm tên bài tập (VD: Ngực, Squat, Kéo xô, Tay)...">
-          
           <div id="muscleFilterChips" class="chip-scroll-row">
             <button class="muscle-chip active" data-muscle="all">Tất cả</button>
             <button class="muscle-chip" data-muscle="Ngực">Ngực</button>
@@ -383,11 +402,7 @@
             <button class="muscle-chip" data-muscle="Tay sau">Tay sau</button>
             <button class="muscle-chip" data-muscle="Bụng / Core">Bụng / Core</button>
           </div>
-
-          <div id="libraryExerciseList" class="library-list">
-            <!-- 40+ exercises injected by JS -->
-          </div>
-
+          <div id="libraryExerciseList" class="library-list"></div>
           <div class="custom-ex-box">
             <h4>Hoặc tự tạo bài tập mới</h4>
             <div class="custom-ex-row">
@@ -408,7 +423,7 @@
       </div>
     </div>
 
-    <!-- ================= MODAL 3: MÁY TÍNH LẮP BÁNH TẠ (PLATE CALCULATOR) ================= -->
+    <!-- Modal 3: Plate Calculator -->
     <div id="plateCalcModal" class="modal hidden">
       <div class="modal-backdrop"></div>
       <div class="modal-sheet">
@@ -439,20 +454,16 @@
               </div>
             </div>
           </div>
-
-          <!-- Visual Barbell Diagram -->
           <div class="barbell-visual-box">
             <div class="barbell-side-label" id="platePerSideLabel">Mỗi bên lắp: 20 kg</div>
-            <div id="barbellGraphic" class="barbell-graphic">
-              <!-- Plates drawn by JS -->
-            </div>
+            <div id="barbellGraphic" class="barbell-graphic"></div>
             <div id="plateListText" class="plate-list-text">1 bánh 20kg</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ================= MODAL 4: CHI TIẾT BÀI TẬP, 1RM & BIỂU ĐỒ TIẾN ĐỘ ================= -->
+    <!-- Modal 4: Chi tiết bài tập, 1RM & Biểu đồ -->
     <div id="exerciseDetailModal" class="modal hidden">
       <div class="modal-backdrop"></div>
       <div class="modal-sheet">
@@ -473,26 +484,22 @@
             </div>
             <div class="kpi-box">
               <span class="kpi-val" id="detailBestVolume">0</span>
-              <span class="kpi-lbl">Hiệp tốt nhất</span>
+              <span class="kpi-lbl">Hiệp gần nhất</span>
             </div>
           </div>
-
           <div class="input-field">
             <label>📌 Ghi chú kỹ thuật cho bài này (tự lưu)</label>
             <input type="text" id="detailExNoteInput" placeholder="VD: Chỉnh ghế nấc 3, hạ tạ chậm 2 giây...">
           </div>
-
           <div class="input-field">
             <label>📈 Biểu đồ tiến độ mức tạ & 1RM qua các buổi</label>
-            <div id="detailExChart" class="bw-chart-wrap">
-              <!-- SVG chart injected by JS -->
-            </div>
+            <div id="detailExChart" class="bw-chart-wrap"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ================= MODAL 5: THÊM CÔNG VIỆC MỚI ================= -->
+    <!-- Modal 5: Thêm Task mới -->
     <div id="addTaskModal" class="modal hidden">
       <div class="modal-backdrop"></div>
       <div class="modal-sheet">
