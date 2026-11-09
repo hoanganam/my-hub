@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-hub-pwa-v1';
+const CACHE_NAME = 'my-hub-pwa-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -26,21 +26,18 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Network-first with offline cache fallback so upgrades appear immediately on iPhone
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const copy = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          }
-          return networkResponse;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const copy = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
-
