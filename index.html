@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>My Hub — Gym & Công Việc</title>
+
+  <!-- PWA & iOS Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#090d16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="My Hub">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <span class="hub-badge" id="hubDateBadge">Hôm nay</span>
+        <h1 class="header-title" id="pageTitle">Tập Luyện</h1>
+      </div>
+      <div class="header-right">
+        <button id="quickTimerBtn" class="icon-btn" title="Mở bấm giờ nhanh">
+          <span class="icon">⏱️</span>
+          <span id="quickTimerBadge" class="timer-badge hidden">00:00</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+
+      <!-- ================= TAB 1: GYM ================= -->
+      <section id="tab-gym" class="tab-pane active">
+        <!-- Workout Selector / Active Banner -->
+        <div class="workout-card">
+          <div class="workout-header">
+            <div>
+              <span class="section-sub">Buổi tập hiện tại</span>
+              <h2 id="currentRoutineName" class="workout-name">Push Day (Ngực - Vai - Tay sau)</h2>
+            </div>
+            <button id="changeRoutineBtn" class="btn-pill">Đổi lịch</button>
+          </div>
+          <div class="workout-stats-bar">
+            <div class="stat-item">
+              <span class="stat-val" id="totalSetsDone">0</span>
+              <span class="stat-lbl">Hiệp xong</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val" id="totalVolume">0 kg</span>
+              <span class="stat-lbl">Tổng tạ</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val" id="activeTimeElapsed">00:00</span>
+              <span class="stat-lbl">Thời gian</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exercise List for Workout -->
+        <div class="section-title-wrap">
+          <h3 class="section-title">Danh sách bài tập</h3>
+          <button id="addExerciseToWorkoutBtn" class="btn-text">+ Thêm bài</button>
+        </div>
+
+        <div id="exerciseList" class="exercise-list">
+          <!-- Exercise items injected by JS -->
+        </div>
+
+        <!-- Finish Workout Button -->
+        <div class="action-footer">
+          <button id="finishWorkoutBtn" class="btn-primary w-full">🎉 Hoàn Thành Buổi Tập</button>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: CÔNG VIỆC (TASKS & NOTES) ================= -->
+      <section id="tab-tasks" class="tab-pane">
+        <div class="tasks-overview">
+          <div class="task-summary-card">
+            <div>
+              <span class="section-sub">Tổng việc hôm nay</span>
+              <h2 id="taskPendingCount" class="workout-name">0 việc cần làm</h2>
+            </div>
+            <button id="openNewTaskModal" class="btn-pill">+ Việc mới</button>
+          </div>
+        </div>
+
+        <!-- Task Filter -->
+        <div class="filter-tabs">
+          <button class="filter-btn active" data-filter="all">Tất cả</button>
+          <button class="filter-btn" data-filter="pending">Chưa xong</button>
+          <button class="filter-btn" data-filter="done">Đã xong</button>
+        </div>
+
+        <!-- Task List -->
+        <div id="taskList" class="task-list">
+          <!-- Tasks injected by JS -->
+        </div>
+
+        <!-- Quick Notes Section -->
+        <div class="section-title-wrap" style="margin-top: 24px;">
+          <h3 class="section-title">Ghi chú & Ý tưởng nhanh</h3>
+        </div>
+        <div class="quick-note-box">
+          <textarea id="quickNotesInput" placeholder="Ghi chú nhanh suy nghĩ, việc cần nhớ, ý tưởng công việc..."></textarea>
+          <div class="note-foot">
+            <span id="noteSavedStatus" class="note-status">Đã lưu tự động</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: LỊCH SỬ & TIẾN ĐỘ ================= -->
+      <section id="tab-history" class="tab-pane">
+        <h3 class="section-title">Lịch sử tập gần đây</h3>
+        <div id="workoutHistoryList" class="history-list">
+          <!-- History items injected by JS -->
+        </div>
+      </section>
+
+      <!-- ================= TAB 4: CÀI ĐẶT & HƯỚNG DẪN CÀI IPHONE ================= -->
+      <section id="tab-settings" class="tab-pane">
+        <!-- iPhone Install Guide -->
+        <div class="info-card">
+          <div class="info-icon">📲</div>
+          <div class="info-content">
+            <h4>Cách đưa ra Màn hình chính iPhone</h4>
+            <ol class="guide-steps">
+              <li>Mở web này bằng <strong>Safari</strong> trên iPhone.</li>
+              <li>Bấm nút <strong>Chia sẻ (Share <span class="share-icon">⎋</span>)</strong> ở thanh dưới.</li>
+              <li>Cuộn xuống chọn <strong>"Thêm vào MH chính" (Add to Home Screen)</strong>.</li>
+              <li>Bấm <strong>Thêm (Add)</strong> $\rightarrow$ Bạn sẽ có icon app riêng, mở full màn hình và dùng offline mượt mà!</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Sound & Vibration settings -->
+        <div class="settings-group">
+          <h4>Cài đặt âm thanh & bấm giờ</h4>
+          <div class="setting-row">
+            <span>Chuông báo khi hết giờ nghỉ</span>
+            <label class="switch">
+              <input type="checkbox" id="settingSoundToggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span>Rung điện thoại (Haptic feedback)</span>
+            <label class="switch">
+              <input type="checkbox" id="settingVibrateToggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span>Thời gian nghỉ mặc định</span>
+            <select id="settingDefaultRest" class="select-pill">
+              <option value="60">60 giây</option>
+              <option value="90" selected>90 giây</option>
+              <option value="120">120 giây (2 phút)</option>
+              <option value="180">180 giây (3 phút)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Data Backup & Restore -->
+        <div class="settings-group">
+          <h4>Sao lưu dữ liệu cá nhân</h4>
+          <p class="setting-desc">Dữ liệu được lưu an toàn 100% trong bộ nhớ iPhone của bạn.</p>
+          <div class="btn-group-row">
+            <button id="exportDataBtn" class="btn-outline">📥 Tải file sao lưu (JSON)</button>
+            <label class="btn-outline file-label">
+              📤 Nhập lại file sao lưu
+              <input type="file" id="importDataInput" accept=".json" style="display:none">
+            </label>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (iOS Style) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="tab-gym">
+        <span class="nav-icon">🏋️</span>
+        <span class="nav-label">Tập Gym</span>
+      </button>
+      <button class="nav-item" data-tab="tab-tasks">
+        <span class="nav-icon">💼</span>
+        <span class="nav-label">Công Việc</span>
+      </button>
+      <button class="nav-item" data-tab="tab-history">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Lịch Sử</span>
+      </button>
+      <button class="nav-item" data-tab="tab-settings">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Cài Đặt</span>
+      </button>
+    </nav>
+
+    <!-- Rest Timer Floating Overlay / Bar -->
+    <div id="restTimerOverlay" class="timer-overlay hidden">
+      <div class="timer-inner">
+        <div class="timer-top">
+          <span class="timer-title">⏱️ NGHỈ GIỮA HIỆP</span>
+          <button id="closeTimerOverlayBtn" class="icon-btn-sm">✕</button>
+        </div>
+        <div class="timer-display-wrap">
+          <div id="timerNumber" class="timer-number">01:30</div>
+          <div class="timer-progress-bg">
+            <div id="timerProgressBar" class="timer-progress-fill"></div>
+          </div>
+        </div>
+        <div class="timer-quick-actions">
+          <button class="timer-chip" data-add="-15">-15s</button>
+          <button class="timer-chip" data-set="60">60s</button>
+          <button class="timer-chip active" data-set="90">90s</button>
+          <button class="timer-chip" data-set="120">120s</button>
+          <button class="timer-chip" data-add="15">+15s</button>
+          <button id="skipTimerBtn" class="timer-chip chip-skip">Xong luôn ⏩</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Chọn lịch tập (Routines) -->
+    <div id="routineModal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+          <h3>Chọn Lịch Tập</h3>
+          <button class="close-modal-btn">&times;</button>
+        </div>
+        <div id="routineOptionsList" class="modal-content-list">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Thêm bài tập vào buổi tập -->
+    <div id="addExerciseModal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+          <h3>Thêm Bài Tập</h3>
+          <button class="close-modal-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="input-field">
+            <label>Tên bài tập</label>
+            <input type="text" id="newExerciseName" placeholder="Ví dụ: Đẩy ngực tạ đơn, Kéo xô...">
+          </div>
+          <div class="input-field">
+            <label>Nhóm cơ</label>
+            <select id="newExerciseMuscle" class="select-pill w-full">
+              <option value="Ngực">Ngực (Chest)</option>
+              <option value="Lưng / Xô">Lưng / Xô (Back/Lat)</option>
+              <option value="Vai">Vai (Shoulders)</option>
+              <option value="Tay trước">Tay trước (Biceps)</option>
+              <option value="Tay sau">Tay sau (Triceps)</option>
+              <option value="Chân / Mông">Chân / Mông (Legs/Glutes)</option>
+              <option value="Bụng / Core">Bụng / Core (Abs)</option>
+            </select>
+          </div>
+          <button id="confirmAddExerciseBtn" class="btn-primary w-full" style="margin-top: 16px;">+ Đưa vào buổi tập</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Thêm việc mới (Task) -->
+    <div id="addTaskModal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+          <h3>Thêm Công Việc Mới</h3>
+          <button class="close-modal-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="input-field">
+            <label>Nội dung việc</label>
+            <input type="text" id="newTaskTitle" placeholder="Ví dụ: Báo giá khách hàng A, Gửi mail...">
+          </div>
+          <div class="input-field">
+            <label>Mức độ ưu tiên</label>
+            <select id="newTaskPriority" class="select-pill w-full">
+              <option value="high">🔴 Gấp & Quan trọng</option>
+              <option value="medium" selected>🟡 Bình thường</option>
+              <option value="low">🟢 Rảnh làm</option>
+            </select>
+          </div>
+          <button id="confirmAddTaskBtn" class="btn-primary w-full" style="margin-top: 16px;">Lưu việc</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

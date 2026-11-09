@@ -1,0 +1,19 @@
+{
+  "name": "My Hub — Gym & Công Việc",
+  "short_name": "My Hub",
+  "description": "Super App cá nhân cho iPhone: Theo dõi tập Gym, bấm giờ nghỉ và quản lý công việc hàng ngày.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
