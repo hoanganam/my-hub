@@ -1,72 +1,35 @@
-const CACHE_NAME = 'my-hub-pwa-v3';
+const CACHE = 'my-hub-retire-v4';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './logic.js',
   './app.js',
   './manifest.json',
-  './icon.svg'
+  './icon.svg',
+  './icon-180.png',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).catch(() => {}));
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      )
-    )
-  );
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))));
   self.clients.claim();
 });
 
-// Network-first with offline cache fallback
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const copy = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        }
-        return networkResponse;
-      })
-      .catch(() => caches.match(event.request))
-  );
-});
-
-// Handle Background / System Notifications for Rest Timer (even when switching apps or listening to Spotify)
-self.addEventListener('message', (event) => {
-  if (!event.data) return;
-
-  if (event.data.type === 'SHOW_TIMER_NOTIFICATION') {
-    self.registration.showNotification(event.data.title || '⏱️ HẾT GIỜ NGHỈ!', {
-      body: event.data.body || 'Đến giờ vào hiệp tiếp theo rồi bạn ơi! 💪🔥',
-      icon: './icon.svg',
-      badge: './icon.svg',
-      tag: 'gym-rest-timer',
-      renotify: true,
-      vibrate: [300, 100, 300, 100, 400],
-      requireInteraction: false
-    });
-  }
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if ('focus' in client) return client.focus();
-      }
-      if (clients.openWindow) return clients.openWindow('./');
-    })
+// Ưu tiên mạng (luôn lấy bản mới), mất mạng thì dùng bản đã lưu.
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  e.respondWith(
+    fetch(req).then((res) => {
+      if (res && res.status === 200) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
+      return res;
+    }).catch(() => caches.match(req))
   );
 });
