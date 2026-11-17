@@ -1,4 +1,4 @@
-/* app.js — Quỹ Hưu Trí (Giao diện Sáng · Tinh gọn · Truyền động lực).
+/* app.js — Quỹ Hưu Trí (Giao diện Sáng · Icon nét mảnh Lucide · Tối giản).
  * Mọi dữ liệu và API Key chỉ lưu cục bộ trong localStorage trên iPhone của bạn. */
 (function () {
   'use strict';
@@ -6,8 +6,24 @@
   const KEY = 'retire_state_v2';
   const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#f97316'];
   const TITLES = { overview: 'Quỹ Hưu Trí', portfolio: 'Tài sản của tôi', plan: 'Nhịp góp tháng tới', gemini: 'Trợ lý Gemini' };
-  const ICONS = { gold: '🪙', fund: '📈', stock: '📊', cash: '💵', other: '💎' };
   const ICON_BG = { gold: '#fef3c7', fund: '#d1fae5', stock: '#dbeafe', cash: '#e0e7ff', other: '#f3e8ff' };
+  const ICON_FG = { gold: '#d97706', fund: '#059669', stock: '#2563eb', cash: '#4f46e5', other: '#7c3aed' };
+
+  // Bộ icon nét mảnh tối giản (Lucide SVG style)
+  const PATHS = {
+    gold: '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/>',
+    fund: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    sliders: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="2" y1="14" x2="6" y2="14"/><line x1="10" y1="8" x2="14" y2="8"/><line x1="18" y1="16" x2="22" y2="16"/>',
+    sparkle: '<path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3z"/>',
+    ext: '<path d="M7 17L17 7"/><path d="M7 7h10v10"/>',
+    copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'
+  };
+  const ico = (name, cls) => '<svg class="svg-ico ' + (cls || '') + '" viewBox="0 0 24 24">' + (PATHS[name] || PATHS.fund) + '</svg>';
 
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -24,8 +40,6 @@
   const sgn = (n) => (n > 0 ? '+' : n < 0 ? '−' : '');
   const smoney = (n) => '<span class="money">' + sgn(n) + fmt(Math.abs(n)) + ' ₫</span>';
   const pct = (n, d) => (n == null ? '—' : n.toFixed(d === undefined ? 1 : d).replace('.', ',') + '%');
-  const spct = (n, d) => (n == null ? '—' : sgn(n) + Math.abs(n).toFixed(d === undefined ? 1 : d).replace('.', ',') + '%');
-  const dmy = (iso) => (iso ? iso.split('-').slice(1).reverse().join('/') : '');
   const dmyFull = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
   const colorOf = (code) => {
     if (code === 'GOLD') return '#f59e0b';
@@ -34,8 +48,12 @@
     const i = S.assets.findIndex((a) => a.code === code);
     return COLORS[(i < 0 ? 0 : i) % COLORS.length];
   };
-  const iconOf = (a) => (a.code === 'DCBF' ? '🛡️' : (ICONS[a.kind] || '💎'));
+  const iconOf = (a, cls) => {
+    const k = a.code === 'DCBF' ? 'shield' : (a.kind === 'gold' ? 'gold' : 'fund');
+    return ico(k, cls);
+  };
   const iconBgOf = (a) => (a.code === 'DCBF' ? '#dbeafe' : (ICON_BG[a.kind] || '#f1f5f9'));
+  const iconFgOf = (a) => (a.code === 'DCBF' ? '#2563eb' : (ICON_FG[a.kind] || '#0f172a'));
 
   /* ---------- State ---------- */
   function load() {
@@ -121,9 +139,9 @@
   }
 
   function noAssetsCard() {
-    return '<div class="card empty"><div class="empty-ico">🌱</div><h2>Khởi động Quỹ Hưu Trí</h2>' +
-      '<button class="btn primary w100" data-action="loadSeedPortfolio">⚡ Nạp danh mục 3 kênh (7.672.000 ₫)</button>' +
-      '<button class="btn w100" data-action="goTab" data-tab="gemini">✨ Đồng bộ từ Gemini</button></div>';
+    return '<div class="card empty"><h2>Khởi động Quỹ Hưu Trí</h2>' +
+      '<button class="btn primary w100" data-action="loadSeedPortfolio">Nạp danh mục 3 kênh (7.672.000 ₫)</button>' +
+      '<button class="btn w100" data-action="goTab" data-tab="gemini">Đồng bộ từ Gemini</button></div>';
   }
 
   function donut(sm) {
@@ -154,12 +172,11 @@
     const goalAmt = (S.goal && S.goal.amount > 0) ? S.goal.amount : 50000000;
     const goalPct = Math.max(0, Math.min(100, (total / goalAmt) * 100));
 
-    // Cột mốc truyền động lực
     const steps = [
-      { amt: 5000000, lbl: 'Khởi động', ico: '🌱' },
-      { amt: 10000000, lbl: 'Đà tăng', ico: '🔥' },
-      { amt: 25000000, lbl: 'Nửa chặng', ico: '⭐' },
-      { amt: goalAmt, lbl: 'Đích Năm 1', ico: '🏆' }
+      { amt: 5000000, lbl: 'Khởi động' },
+      { amt: 10000000, lbl: 'Đà tăng' },
+      { amt: 25000000, lbl: 'Nửa chặng' },
+      { amt: goalAmt, lbl: 'Đích Năm 1' }
     ];
     let foundNext = false;
     const msHTML = steps.map((st) => {
@@ -167,15 +184,15 @@
       const isNext = !done && !foundNext;
       if (isNext) foundNext = true;
       return '<div class="ms ' + (done ? 'done' : isNext ? 'next' : '') + '">' +
-        '<span class="ms-ico">' + (done ? '✅' : st.ico) + '</span>' +
+        '<div class="ms-dot">' + (done ? ico('check', 'sm') : ico('target', 'sm')) + '</div>' +
         '<span class="ms-amt">' + shortVnd(st.amt) + '</span>' +
         '<span class="ms-lbl">' + st.lbl + '</span></div>';
     }).join('');
 
     const nextStep = steps.find((st) => total < st.amt);
     const cheer = nextStep
-      ? '🚀 Chỉ còn <b class="money">' + fmt(nextStep.amt - total) + ' ₫</b> nữa là cán mốc <b>' + shortVnd(nextStep.amt) + '</b>!'
-      : '🎉 Tuyệt vời! Bạn đã chinh phục cột mốc ' + shortVnd(goalAmt) + '!';
+      ? 'Chỉ còn <b class="money">' + fmt(nextStep.amt - total) + ' ₫</b> nữa là cán mốc <b>' + shortVnd(nextStep.amt) + '</b>!'
+      : 'Bạn đã chinh phục cột mốc ' + shortVnd(goalAmt) + '!';
 
     const rows = sm.assets.map((a) => {
       const c = colorOf(a.code);
@@ -186,7 +203,7 @@
           ? '<span class="pill-tag buy">Ưu tiên gom thêm</span>'
           : '<span class="pill-tag ok">Đúng chuẩn</span>';
       return '<div class="alloc-row">' +
-        '<div class="alloc-top"><span>' + iconOf(a) + '</span><span>' + esc(a.name) + '</span>' +
+        '<div class="alloc-top"><span class="dot" style="background:' + c + '"></span><span>' + esc(a.name) + '</span>' +
         '<span class="alloc-nums">' + pct(a.currentPct) + ' <span class="muted" style="font-weight:600">/ ' + pct(a.targetPct, 0) + '</span></span></div>' +
         '<div class="bar"><i style="width:' + Math.min(100, a.currentPct) + '%;background:' + c + '"></i>' +
         (a.targetPct > 0 ? '<b style="left:calc(' + Math.min(100, a.targetPct) + '% - 1px)"></b>' : '') + '</div>' +
@@ -203,9 +220,9 @@
       '<div class="lbl">Tài sản tích lũy của bạn</div>' +
       '<div class="big">' + money(total) + '</div>' +
       '<div class="hero-badges">' +
-      '<span class="hbadge gold">🔥 ' + txCount + ' lệnh kỷ luật</span>' +
-      '<span class="hbadge">✓ Đủ 3/3 kênh</span>' +
-      (sm.totalPending > 0 ? '<span class="hbadge">⏳ ' + shortVnd(sm.totalPending) + ' chờ khớp</span>' : '') +
+      '<span class="hbadge gold">' + ico('check', 'sm') + ' ' + txCount + ' lệnh kỷ luật</span>' +
+      '<span class="hbadge">Đủ 3/3 kênh</span>' +
+      (sm.totalPending > 0 ? '<span class="hbadge">' + ico('clock', 'sm') + ' ' + shortVnd(sm.totalPending) + ' chờ khớp</span>' : '') +
       '</div></div>' +
 
       '<div class="card goal-card">' +
@@ -215,7 +232,7 @@
       '<div class="milestones">' + msHTML + '</div>' +
       '<div class="cheer-banner">' + cheer + '</div></div>' +
 
-      '<div class="card"><h3>🥧 Cơ cấu 3 trụ cột</h3>' +
+      '<div class="card"><h3>Cơ cấu 3 trụ cột</h3>' +
       '<div class="donut-wrap">' + donut(sm) + '<div class="donut-legend">' + legend + '</div></div>' +
       '<div>' + rows + '</div></div>';
   }
@@ -228,7 +245,7 @@
       '<div style="flex:1"><div class="a">' + money(t.amount) + (t.units != null ? ' <span class="pos small">· ' + String(t.units).replace('.', ',') + ' ' + esc(unit) + '</span>' : '') + '</div>' +
       (t.note ? '<div class="n">' + esc(t.note) + '</div>' : '') + '</div>' +
       (missingUnits ? '<span class="badge pending">+ Số ' + esc(unit) + '</span>' : '') +
-      (pend ? '<button class="btn sm mini primary" data-action="fillTx" data-id="' + esc(t.id) + '">✓ Đã khớp</button>' : '') +
+      (pend ? '<button class="btn sm mini primary" data-action="fillTx" data-id="' + esc(t.id) + '">Đã khớp</button>' : '') +
       '</div>';
   }
 
@@ -241,7 +258,7 @@
       const qtyStr = a.units > 0 ? String(+a.units.toFixed(3)).replace('.', ',') + ' ' + a.unit : 'Chưa nhập';
       return '<div class="card">' +
         '<div class="asset-top">' +
-        '<div class="asset-ico" style="background:' + iconBgOf(a) + '">' + iconOf(a) + '</div>' +
+        '<div class="asset-ico" style="background:' + iconBgOf(a) + ';color:' + iconFgOf(a) + '">' + iconOf(a) + '</div>' +
         '<div><div class="asset-name">' + esc(a.name) + '</div><div class="asset-sub">Mục tiêu ' + pct(a.targetPct, 0) + ' · Hiện tại ' + pct(a.currentPct) + '</div></div>' +
         '<div class="asset-val">' + money(a.committedCost) + '<div class="p ' + (a.pnl >= 0 ? 'pos' : 'neg') + '">' + (a.valued && a.pnl !== 0 ? smoney(a.pnl) : (a.pending > 0 ? 'Chờ khớp 19/11' : 'Đã giải ngân')) + '</div></div></div>' +
         '<div class="stat-pills">' +
@@ -249,23 +266,23 @@
         '<div class="sp"><span>Giá / NAV</span><b>' + esc(priceStr) + '</b></div>' +
         '<div class="sp"><span>Số lệnh</span><b>' + txs.length + ' lệnh</b></div></div>' +
         '<div class="btn-row">' +
-        '<button class="btn sm primary" data-action="addTx" data-code="' + esc(a.code) + '">+ Mua thêm</button>' +
-        '<button class="btn sm" data-action="priceAsset" data-code="' + esc(a.code) + '">💲 Giá hôm nay</button>' +
-        '<button class="btn sm ghost" data-action="editAsset" data-code="' + esc(a.code) + '">⚙️</button></div>' +
+        '<button class="btn sm primary" data-action="addTx" data-code="' + esc(a.code) + '">' + ico('plus', 'sm') + ' Mua thêm</button>' +
+        '<button class="btn sm" data-action="priceAsset" data-code="' + esc(a.code) + '">Giá hôm nay</button>' +
+        '<button class="btn sm ghost" data-action="editAsset" data-code="' + esc(a.code) + '" aria-label="Sửa">' + ico('sliders', 'sm') + '</button></div>' +
         '<details' + (a.pending > 0 ? ' open' : '') + '><summary>Xem ' + txs.length + ' lệnh đã mua</summary>' +
         (txs.length ? txs.map((t) => txRow(t, a.unit)).join('') : '<div class="muted small">Chưa có giao dịch.</div>') + '</details></div>';
     }).join('');
-    el.innerHTML = cards + '<button class="btn w100" data-action="addAsset">+ Thêm kênh mới</button>';
+    el.innerHTML = cards + '<button class="btn w100" data-action="addAsset">' + ico('plus', 'sm') + ' Thêm kênh mới</button>';
   }
 
   function renderPlan() {
     const el = $('#tab-plan');
     if (!S.assets.length) { el.innerHTML = noAssetsCard(); return; }
     const ts = SUM.targetSum, tsOK = Math.abs(ts - 100) <= 0.5;
-    const trows = SUM.assets.map((a) => '<div class="trow"><span>' + iconOf(a) + '</span><span class="nm">' + esc(a.name) + '</span>' +
+    const trows = SUM.assets.map((a) => '<div class="trow"><span class="dot" style="background:' + colorOf(a.code) + '"></span><span class="nm">' + esc(a.name) + '</span>' +
       '<input class="tinput" data-code="' + esc(a.code) + '" inputmode="decimal" value="' + (a.targetPct || '') + '" placeholder="0"><span>%</span></div>').join('');
     el.innerHTML =
-      '<div class="card"><h3>🚀 Chia tiền tiết kiệm tháng tới</h3>' +
+      '<div class="card"><h3>Chia tiền tiết kiệm tháng tới</h3>' +
       '<div class="row" style="margin-top:4px">' +
       '<button class="btn sm" data-action="setPlanAmt" data-amt="3500000">3,5 triệu</button>' +
       '<button class="btn sm" data-action="setPlanAmt" data-amt="3750000">3,75 triệu</button>' +
@@ -273,7 +290,7 @@
       '<label for="planAmount">Hoặc nhập số tiền khác (₫)</label>' +
       '<input id="planAmount" inputmode="numeric" placeholder="3.750.000" value="' + (S.monthlyContribution ? fmt(S.monthlyContribution) : '') + '">' +
       '<div id="planResult"></div></div>' +
-      '<details class="card"><summary>🎯 Chỉnh mục tiêu Năm 1 (' + pct(ts, 0) + ' · ' + shortVnd(S.goal.amount || 50000000) + ')</summary>' +
+      '<details class="card"><summary>Chỉnh mục tiêu Năm 1 (' + pct(ts, 0) + ' · ' + shortVnd(S.goal.amount || 50000000) + ')</summary>' +
       '<div style="margin-top:8px">' + trows + '</div>' +
       (!tsOK && ts > 0 ? '<button class="btn sm w100" data-action="normalizeTargets">Chuẩn hóa về 100%</button>' : '') +
       '<label for="goalAmount">Mục tiêu tổng quỹ (₫)</label><input id="goalAmount" inputmode="numeric" value="' + (S.goal.amount ? fmt(S.goal.amount) : '') + '">' +
@@ -294,46 +311,46 @@
         const a = S.assets.find((x) => x.code === r.code) || { kind: 'fund', code: r.code };
         const buy = r.alloc > 0;
         return '<div class="pcard ' + (buy ? 'active-buy' : '') + '">' +
-          '<div class="pcard-left"><span style="font-size:22px">' + iconOf(a) + '</span>' +
+          '<div class="pcard-left"><div class="asset-ico" style="width:36px;height:36px;background:' + iconBgOf(a) + ';color:' + iconFgOf(a) + '">' + iconOf(a, 'sm') + '</div>' +
           '<div><div class="pcard-name">' + esc(r.name) + '</div>' +
           '<div class="pcard-sub">Tỷ trọng lên ' + pct(r.afterPct) + ' (mục tiêu ' + pct(r.targetPct, 0) + ')</div></div></div>' +
           '<div class="pcard-amt ' + (buy ? '' : 'zero') + '">' + (buy ? '+' + money(r.alloc) : 'Ngưng mua') + '</div></div>';
       }).join('') + '</div>' +
-      '<button class="btn primary w100" data-action="createPlanOrders">📝 Ghi lệnh góp tháng này vào danh mục</button>';
+      '<button class="btn primary w100" data-action="createPlanOrders">Ghi lệnh góp tháng này vào danh mục</button>';
   }
 
   /* ---------- Gemini & AI Tab (Tinh gọn) ---------- */
   function initGemini() {
     $('#tab-gemini').innerHTML =
       '<div class="card">' +
-      '<h3>🤖 Báo giao dịch mới cho AI</h3>' +
+      '<h3>Báo giao dịch mới cho AI</h3>' +
       '<textarea id="aiQuickInput" style="min-height:74px" placeholder="VD: Lệnh DCBF 200k đã khớp 6,46 CCQ; tháng 12 mới mua thêm 2,15 triệu DCDS..."></textarea>' +
-      '<button class="btn primary w100" id="runAiBtn" data-action="runAiDirect">⚡ Gửi AI & Tự cập nhật</button>' +
+      '<button class="btn primary w100" id="runAiBtn" data-action="runAiDirect">' + ico('sparkle', 'sm') + ' Gửi AI & Tự cập nhật</button>' +
       '<div id="aiDirectOutput"></div></div>' +
 
-      '<div class="card"><h3>💬 Đồng bộ với chat Gemini “Hưu trí”</h3>' +
+      '<div class="card"><h3>Đồng bộ với chat Gemini “Hưu trí”</h3>' +
       '<div class="btn-col">' +
-      '<a id="openGemini" class="btn gold" target="_blank" rel="noopener">↗ Mở chat Gemini “Hưu trí”</a>' +
+      '<a id="openGemini" class="btn gold" target="_blank" rel="noopener">Mở chat Gemini “Hưu trí” ' + ico('ext', 'sm') + '</a>' +
       '<div class="row" style="margin-top:0">' +
-      '<button class="btn sm" data-action="copyPrompt" data-kind="price">📋 Hỏi giá hôm nay</button>' +
-      '<button class="btn sm" data-action="copyReport">📤 Copy Báo cáo</button></div></div>' +
+      '<button class="btn sm" data-action="copyPrompt" data-kind="price">' + ico('copy', 'sm') + ' Hỏi giá hôm nay</button>' +
+      '<button class="btn sm" data-action="copyReport">' + ico('copy', 'sm') + ' Copy Báo cáo</button></div></div>' +
       '<label for="pasteBox">Dán JSON từ Gemini vào đây</label>' +
       '<textarea id="pasteBox" style="min-height:74px" placeholder="Dán khối ```json ... ``` của Gemini vào đây"></textarea>' +
-      '<div class="row"><button class="btn sm" data-action="pasteClipboard">📎 Dán nhanh</button><button class="btn sm ghost" data-action="clearPaste">Xóa</button></div>' +
+      '<div class="row"><button class="btn sm" data-action="pasteClipboard">Dán nhanh</button><button class="btn sm ghost" data-action="clearPaste">Xóa</button></div>' +
       '<select id="importMode" class="hidden"><option value="merge" selected>Gộp</option><option value="replace">Thay thế</option></select>' +
       '<div id="importPreview"></div></div>' +
 
-      '<details class="card"><summary>⚙️ Cài đặt API Key & Sao lưu dữ liệu</summary>' +
+      '<details class="card"><summary>Cài đặt API Key & Sao lưu dữ liệu</summary>' +
       '<label for="aiProviderSelect">Bộ não AI trực tiếp</label>' +
       '<select id="aiProviderSelect"><option value="gemini">Google Gemini API (gemini-2.5-flash)</option><option value="openai">OpenAI ChatGPT API (gpt-4o-mini)</option></select>' +
       '<label for="geminiKeyInput">Gemini API Key</label><input id="geminiKeyInput" type="password" placeholder="AIzaSy..." autocomplete="off">' +
       '<label for="openaiKeyInput">OpenAI API Key</label><input id="openaiKeyInput" type="password" placeholder="sk-..." autocomplete="off">' +
-      '<button class="btn sm primary w100" data-action="saveApiKeys">💾 Lưu API Key</button>' +
+      '<button class="btn sm primary w100" data-action="saveApiKeys">Lưu API Key</button>' +
       '<label for="geminiUrl">Link chat Gemini “Hưu trí”</label>' +
       '<div class="row"><input id="geminiUrl" inputmode="url"><button class="btn sm" style="flex:0 0 auto" data-action="saveGeminiUrl">Lưu</button></div>' +
-      '<div class="btn-col"><button class="btn sm" data-action="downloadBackup">💾 Tải file sao lưu (.json)</button>' +
-      '<label class="btn sm" style="margin:0;cursor:pointer">📂 Khôi phục từ file<input type="file" id="restoreFile" accept=".json,application/json" style="display:none"></label>' +
-      '<button class="btn sm" data-action="loadSeedPortfolio">🔄 Khôi phục dữ liệu chuẩn 17/11/2026</button></div></details>';
+      '<div class="btn-col"><button class="btn sm" data-action="downloadBackup">Tải file sao lưu (.json)</button>' +
+      '<label class="btn sm" style="margin:0;cursor:pointer">Khôi phục từ file<input type="file" id="restoreFile" accept=".json,application/json" style="display:none"></label>' +
+      '<button class="btn sm" data-action="loadSeedPortfolio">Khôi phục dữ liệu chuẩn 17/11/2026</button></div></details>';
 
     $('#pasteBox').addEventListener('input', debounce(previewImport, 250));
     $('#restoreFile').addEventListener('change', (e) => {
@@ -364,7 +381,7 @@
     const activeProvider = (provider === 'gemini' && gKey) ? 'gemini' : (oKey ? 'openai' : (gKey ? 'gemini' : null));
 
     if (!activeProvider) {
-      outBox.innerHTML = '<div class="preview err">Chưa có API Key trong mục <b>⚙️ Cài đặt API Key</b>. Mình đã copy sẵn nội dung — bạn chỉ cần bấm <b>↗ Mở chat Gemini “Hưu trí”</b> rồi dán vào nhé!</div>';
+      outBox.innerHTML = '<div class="preview err">Chưa có API Key trong mục <b>Cài đặt API Key</b>. Mình đã copy sẵn nội dung — bạn chỉ cần bấm <b>Mở chat Gemini “Hưu trí”</b> rồi dán vào nhé!</div>';
       await copyText(R.buildReport(S, today()) + userText);
       return;
     }
@@ -377,7 +394,7 @@
       '{ "asOf": "' + today() + '", "transactions": [ { "asset": "GOLD|DCDS|DCBF", "date": "YYYY-MM-DD", "amount": 0, "units": null, "status": "done|pending", "note": "" } ], "prices": [ { "asset": "GOLD|DCDS|DCBF", "price": 0, "source": "" } ] }'
     ].join('\n');
 
-    btn.disabled = true; btn.textContent = '⏳ Đang phân tích...';
+    btn.disabled = true; btn.textContent = 'Đang phân tích...';
     outBox.innerHTML = '';
 
     try {
@@ -423,7 +440,7 @@
     } catch (err) {
       outBox.innerHTML = '<div class="preview err">' + esc(err.message || String(err)) + '</div>';
     } finally {
-      btn.disabled = false; btn.textContent = '⚡ Gửi AI & Tự cập nhật';
+      btn.disabled = false; btn.innerHTML = ico('sparkle', 'sm') + ' Gửi AI & Tự cập nhật';
     }
   }
 
@@ -440,7 +457,7 @@
       const d = R.defaultState();
       const st = Object.assign(d, data.state, { goal: Object.assign(d.goal, data.state.goal || {}), settings: Object.assign(d.settings, data.state.settings || {}) });
       pendingImport = { type: 'restore', state: st };
-      box.innerHTML = '<div class="preview">♻️ File sao lưu (' + st.transactions.length + ' lệnh)<button class="btn primary w100" data-action="applyImport">Khôi phục ngay</button></div>';
+      box.innerHTML = '<div class="preview">File sao lưu (' + st.transactions.length + ' lệnh)<button class="btn primary w100" data-action="applyImport">Khôi phục ngay</button></div>';
       return;
     }
     const res = R.mergeImport(S, data, { mode: ($('#importMode') || {}).value || 'merge', today: today() });
@@ -452,7 +469,7 @@
     if (s.updatedTx) items.push('Cập nhật ' + s.updatedTx + ' giao dịch');
     if (s.priceUpdates) items.push('Cập nhật ' + s.priceUpdates + ' mức giá');
     const nothing = !items.length && !s.updatedAssets && !s.goal && !s.contribution;
-    box.innerHTML = '<div class="preview">' + (nothing ? '✓ Dữ liệu đã khớp sẵn trong App.' : '✅ ' + (items.join(' · ') || 'Sẵn sàng cập nhật') + '<button class="btn primary w100" data-action="applyImport">Áp dụng ngay</button>') + '</div>';
+    box.innerHTML = '<div class="preview">' + (nothing ? 'Dữ liệu đã khớp sẵn trong App.' : (items.join(' · ') || 'Sẵn sàng cập nhật') + '<button class="btn primary w100" data-action="applyImport">Áp dụng ngay</button>') + '</div>';
   }
 
   /* ---------- Form ---------- */
@@ -497,7 +514,7 @@
       '<label>Số tiền (₫)</label><input name="amount" inputmode="numeric" value="' + (t ? fmt(t.amount) : '') + '" placeholder="1.400.000">' +
       '<label>Số lượng (' + esc(unitLbl) + ')</label>' +
       '<input id="txUnitsInput" name="units" inputmode="decimal" value="' + (t && t.units != null ? String(t.units).replace('.', ',') : '') + '" placeholder="VD: 0,2 hoặc 4,34">' +
-      (estUnits ? '<button type="button" class="btn sm w100" onclick="document.getElementById(\'txUnitsInput\').value=\'' + String(estUnits).replace('.', ',') + '\'">⚡ Điền nhanh ~' + String(estUnits).replace('.', ',') + ' ' + esc(unitLbl) + '</button>' : '') +
+      (estUnits ? '<button type="button" class="btn sm w100" onclick="document.getElementById(\'txUnitsInput\').value=\'' + String(estUnits).replace('.', ',') + '\'">Điền nhanh ~' + String(estUnits).replace('.', ',') + ' ' + esc(unitLbl) + '</button>' : '') +
       '<label>Trạng thái</label><select name="status"><option value="done"' + (t && t.status === 'pending' ? '' : ' selected') + '>Đã khớp</option><option value="pending"' + (t && t.status === 'pending' ? ' selected' : '') + '>Chờ khớp</option></select>' +
       '<label>Ghi chú</label><input name="note" value="' + esc(t ? t.note : '') + '" placeholder="VD: Huy Thanh Jewelry">' +
       '<button class="btn primary w100" type="submit">Lưu</button>' +
@@ -558,7 +575,7 @@
       t.status = 'done';
       const a = S.assets.find((x) => x.code === t.assetCode);
       if (t.units == null && a && a.price > 0) t.units = +(t.amount / a.price).toFixed(2);
-      commit(); toast('🎉 Đã khớp lệnh!');
+      commit(); toast('Đã khớp lệnh!');
     },
     priceAsset: (d) => openPriceForm(d.code),
     setPlanAmt: (d) => {
@@ -590,7 +607,7 @@
       if (!rows.length) return;
       if (!confirm('Ghi ' + rows.length + ' lệnh góp tháng này (' + fmt(lastPlan.total) + ' ₫)?')) return;
       rows.forEach((r) => S.transactions.push({ id: R.uid(), assetCode: r.code, date: today(), amount: r.alloc, units: null, status: 'pending', note: 'Góp định kỳ tháng' }));
-      commit(); goTab('portfolio'); toast('🚀 Đã ghi lệnh tháng mới!');
+      commit(); goTab('portfolio'); toast('Đã ghi lệnh tháng mới');
     },
     copyPrompt: async (d) => {
       const ok = await copyText(R.buildPrompt(d.kind, S, today()));
@@ -605,7 +622,7 @@
       if (!pendingImport) return;
       S = pendingImport.state; S.lastSync = new Date().toISOString();
       pendingImport = null; $('#pasteBox').value = ''; $('#importPreview').innerHTML = '';
-      commit(); goTab('overview'); toast('✨ Đã cập nhật danh mục!');
+      commit(); goTab('overview'); toast('Đã cập nhật danh mục');
     },
     copyReport: async () => {
       const ok = await copyText(R.buildReport(S, today()));
