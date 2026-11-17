@@ -25,7 +25,7 @@
 
   function emptyState() {
     return {
-      version: 1,
+      version: 2,
       goal: { amount: null, deadline: null },
       monthlyContribution: null,
       assets: [],
@@ -42,7 +42,7 @@
     };
   }
 
-  // Khởi tạo sẵn dữ liệu danh mục thực tế từ bảng tổng hợp 17/11/2026 của bạn
+  // Dữ liệu thực tế đã đồng bộ từ đoạn chat Gemini "Hưu trí" ngày 17/11/2026
   function initialPortfolioState() {
     const s = emptyState();
     s.goal = { amount: 50000000, deadline: '2027-10-06' };
@@ -54,66 +54,92 @@
         kind: 'gold',
         unit: 'chỉ',
         targetPct: 28
-      })),
+      }), {
+        price: 13350000,
+        priceAsOf: '2026-11-17',
+        priceSource: 'Giá mua vào vàng nhẫn 9999 SJC/DOJI/BTMC chiều 17/11/2026 (133,5tr/lượng)',
+        valueBasis: 'price'
+      }),
       Object.assign(makeAsset({
         code: 'DCDS',
         name: 'Quỹ cổ phiếu DCDS',
         kind: 'fund',
         unit: 'CCQ',
         targetPct: 52
-      })),
+      }), {
+        price: 92132.85,
+        priceAsOf: '2026-11-17',
+        priceSource: 'NAV/CCQ DCDS Dragon Capital (kỳ 13/11 - công bố 15-16/11/2026)',
+        valueBasis: 'price'
+      }),
       Object.assign(makeAsset({
         code: 'DCBF',
         name: 'Quỹ trái phiếu DCBF',
         kind: 'fund',
         unit: 'CCQ',
         targetPct: 20
-      }))
+      }), {
+        price: 30925.57,
+        priceAsOf: '2026-11-17',
+        priceSource: 'NAV/CCQ DCBF Dragon Capital (cập nhật 14-15/11/2026)',
+        valueBasis: 'price'
+      })
     ];
     s.transactions = [
       {
-        id: 'seed_gold_1',
+        id: 'tx_gold_261006',
         assetCode: 'GOLD',
-        date: '2026-11-06',
-        amount: 5672000,
-        units: 0.4,
+        date: '2026-10-06',
+        amount: 2860000,
+        units: null,
         status: 'done',
-        note: '2 đơn Huy Thanh Jewelry (06/10 & 06/11)'
+        note: 'Đơn Huy Thanh 06/10 (mã 261006-HT27-251650, x3 sản phẩm)'
       },
       {
-        id: 'seed_gold_2',
+        id: 'tx_gold_261106',
         assetCode: 'GOLD',
-        date: '2026-11-17',
+        date: '2026-11-06',
+        amount: 2812000,
+        units: null,
+        status: 'done',
+        note: 'Đơn Huy Thanh 06/11 (mã 261106-HT27-288684, x4 sản phẩm)'
+      },
+      {
+        id: 'tx_gold_261115',
+        assetCode: 'GOLD',
+        date: '2026-11-15',
         amount: 1400000,
         units: 0.1,
         status: 'done',
         note: 'Miếng vàng 0,1 chỉ mới mua'
       },
       {
-        id: 'seed_dcds_1',
+        id: 'tx_dcds_261107',
         assetCode: 'DCDS',
-        date: '2026-11-15',
+        date: '2026-11-07',
         amount: 400000,
         units: null,
         status: 'done',
-        note: 'Đã khớp lệnh mua đầu tiên'
+        note: 'Lệnh mua đầu tiên'
       },
       {
-        id: 'seed_dcbf_1',
+        id: 'tx_dcbf_261117',
         assetCode: 'DCBF',
         date: '2026-11-17',
         amount: 200000,
         units: null,
         status: 'pending',
-        note: 'Lệnh mới đặt (chờ khớp 19/11/2026)'
+        note: 'Mã lệnh 261117002955, chờ khớp 19/11/2026'
       }
     ];
     s.snapshots = [
-      { d: '2026-10-06', v: 2800000, c: 2800000 },
+      { d: '2026-10-06', v: 2860000, c: 2860000 },
       { d: '2026-11-06', v: 5672000, c: 5672000 },
-      { d: '2026-11-17', v: 7672000, c: 7672000 }
+      { d: '2026-11-07', v: 6072000, c: 6072000 },
+      { d: '2026-11-15', v: 7472000, c: 7472000 },
+      { d: '2026-11-17', v: 7607000, c: 7672000 }
     ];
-    s.lastSync = '2026-11-17T20:00:00.000Z';
+    s.lastSync = '2026-11-17T20:25:00.000Z';
     return s;
   }
 
@@ -211,22 +237,41 @@
     const cost = sum(done, (t) => t.amount);
     const pending = sum(pend, (t) => t.amount);
     const committedCost = cost + pending;
-    const units = sum(done, (t) => (isNum(t.units) ? t.units : 0));
-    const unitsComplete = done.length > 0 && done.every((t) => isNum(t.units) && t.units > 0);
+    const doneWithUnits = done.filter((t) => isNum(t.units) && t.units > 0);
+    const doneWithoutUnits = done.filter((t) => !(isNum(t.units) && t.units > 0));
+    const units = sum(doneWithUnits, (t) => t.units);
+    const unitsComplete = done.length > 0 && doneWithoutUnits.length === 0;
     const priceOK = asset.valueBasis === 'price' && isNum(asset.price) && asset.price > 0;
 
     let value = cost, source = 'cost', asOf = null, note = null;
     if (priceOK && unitsComplete) {
-      value = units * asset.price; source = 'price'; asOf = asset.priceAsOf;
-    } else if (isNum(asset.marketValue)) {
-      value = asset.marketValue; source = 'manual'; asOf = asset.valueAsOf;
+      value = Math.round(units * asset.price);
+      source = 'price';
+      asOf = asset.priceAsOf;
+    } else if (isNum(asset.marketValue) && asset.valueBasis === 'manual') {
+      value = asset.marketValue;
+      source = 'manual';
+      asOf = asset.valueAsOf;
       if (priceOK && !unitsComplete) note = 'units-incomplete';
-    } else if (priceOK && !unitsComplete) {
+    } else if (priceOK && doneWithUnits.length > 0) {
+      // Định giá theo giá thị trường cho các lệnh đã có số lượng, các lệnh thiếu số lượng tạm giữ theo giá vốn
+      value = Math.round(sum(doneWithUnits, (t) => t.units * asset.price) + sum(doneWithoutUnits, (t) => t.amount));
+      source = 'price';
+      asOf = asset.priceAsOf;
+      note = 'units-incomplete';
+    } else if (isNum(asset.marketValue)) {
+      value = asset.marketValue;
+      source = 'manual';
+      asOf = asset.valueAsOf;
+      if (priceOK && !unitsComplete) note = 'units-incomplete';
+    } else if (priceOK && !unitsComplete && done.length > 0) {
       note = 'units-incomplete';
     }
     const effectiveValue = value + pending;
     return {
-      cost, pending, committedCost, units, unitsComplete, value, effectiveValue, source, asOf, note,
+      cost, pending, committedCost, units, unitsComplete,
+      missingUnitsCount: doneWithoutUnits.length,
+      value, effectiveValue, source, asOf, note,
       valued: source !== 'cost',
       pnl: value - cost,
       pnlPct: cost > 0 ? ((value - cost) / cost) * 100 : null,
@@ -248,7 +293,6 @@
     const totalPending = sum(rows, (r) => r.pending);
     const totalCommitted = totalValue + totalPending;
     const totalCommittedCost = totalCost + totalPending;
-    // Tỷ trọng hiện tại tính trên tổng vốn/giá trị đã giải ngân (kể cả lệnh vừa đặt chờ khớp, khớp 100% với bảng Gemini của bạn)
     const denom = totalCommitted > 0 ? totalCommitted : totalValue;
     rows.forEach((r) => {
       r.currentPct = denom > 0 ? ((r.value + r.pending) / denom) * 100 : 0;
@@ -259,7 +303,8 @@
       totalPnl: totalValue - totalCost,
       totalPnlPct: totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : null,
       targetSum: sum(rows, (r) => r.targetPct),
-      unvalued: rows.filter((r) => !r.valued && r.cost > 0).map((r) => r.code)
+      unvalued: rows.filter((r) => !r.valued && r.cost > 0).map((r) => r.code),
+      incompleteUnits: rows.filter((r) => r.note === 'units-incomplete').map((r) => r.code)
     };
   }
 
@@ -394,7 +439,7 @@
         let changed = false;
         if (ex.status === 'pending' && status === 'done') { ex.status = 'done'; changed = true; }
         if (units !== null && ex.units !== units) { ex.units = units; changed = true; }
-        if (note && !ex.note) { ex.note = note; changed = true; }
+        if (note && note !== ex.note) { ex.note = note; changed = true; }
         if (changed) sm.updatedTx++; else sm.skippedTx++;
       } else {
         next.transactions.push({ id: uid(), assetCode: code, date: date, amount: Math.round(amount), units: units, status: status, note: note });
@@ -473,12 +518,12 @@
     '    { "code": "DCBF", "name": "Quỹ trái phiếu DCBF", "kind": "fund", "unit": "CCQ", "targetPct": 20 }',
     '  ],',
     '  "transactions": [',
-    '    { "asset": "GOLD", "date": "2026-10-06", "amount": 2836000, "units": 0.2, "status": "done", "note": "Huy Thanh Jewelry đợt 1" }',
+    '    { "asset": "GOLD", "date": "2026-10-06", "amount": 2860000, "units": 0.2, "status": "done", "note": "Đơn Huy Thanh 06/10" }',
     '  ],',
     '  "prices": [',
-    '    { "asset": "GOLD", "price": 14000000, "source": "giá mua vào 1 chỉ" },',
-    '    { "asset": "DCDS", "price": 85000, "source": "NAV/CCQ Dragon Capital" },',
-    '    { "asset": "DCBF", "price": 26000, "source": "NAV/CCQ Dragon Capital" }',
+    '    { "asset": "GOLD", "price": 13350000, "source": "giá mua vào 1 chỉ" },',
+    '    { "asset": "DCDS", "price": 92132.85, "source": "NAV/CCQ Dragon Capital" },',
+    '    { "asset": "DCBF", "price": 30925.57, "source": "NAV/CCQ Dragon Capital" }',
     '  ],',
     '  "goal": { "amount": 50000000, "deadline": "2027-10-06" },',
     '  "monthlyContribution": 3750000',
@@ -489,7 +534,7 @@
     '- amount = số tiền VND tôi thực chi cho lệnh đó: số nguyên, KHÔNG dấu chấm/phẩy, không chữ "đ".',
     '- units = số lượng mua được (vàng: số chỉ; quỹ DCDS/DCBF: số chứng chỉ quỹ CCQ). Không biết chính xác thì để null.',
     '- status = "done" nếu lệnh đã khớp/đã giải ngân; "pending" nếu mới đặt và đang chờ khớp.',
-    '- date = YYYY-MM-DD. Liệt kê TỪNG lệnh riêng lẻ (ví dụ tách riêng 2 đơn vàng Huy Thanh 06/10 và 06/11, miếng 0,1 chỉ mới mua, lệnh DCDS 400.000đ, lệnh DCBF 200.000đ).',
+    '- date = YYYY-MM-DD. Liệt kê TỪNG lệnh riêng lẻ.',
     '- code = dùng đúng mã: GOLD (Vàng 24K), DCDS (Quỹ cổ phiếu DCDS), DCBF (Quỹ trái phiếu DCBF).',
     '- targetPct = tỷ trọng mục tiêu (%) của từng tài sản (28, 52, 20).',
     '- Tuyệt đối KHÔNG bịa số. Thiếu thì để null và liệt kê ở mục "Còn thiếu".'
@@ -525,9 +570,8 @@
         'Nội dung của tôi: '
       ].join('\n');
     }
-    // sync
     return [
-      'Tôi vừa tạo App Quản Lý Quỹ Hưu Trí trên điện thoại. Dựa trên TOÀN BỘ lịch sử cuộc trò chuyện "Hưu trí" này (gồm 2 đơn vàng Huy Thanh 06/10 & 06/11, miếng vàng 0,1 chỉ mới mua, lệnh Quỹ cổ phiếu DCDS 400.000đ, lệnh Quỹ trái phiếu DCBF 200.000đ chờ khớp 19/11/2026, và các cập nhật nếu có), hãy xuất toàn bộ dữ liệu thành DUY NHẤT một khối JSON (đặt trong ```json) để tôi dán vào app:',
+      'Dựa trên TOÀN BỘ lịch sử cuộc trò chuyện "Hưu trí" này, hãy xuất toàn bộ dữ liệu danh mục hưu trí mới nhất của tôi thành DUY NHẤT một khối JSON (đặt trong ```json) để tôi dán vào App:',
       '',
       'Quy tắc bắt buộc:',
       RULES,
@@ -535,7 +579,7 @@
       'Schema chuẩn:',
       SCHEMA_EXAMPLE,
       '',
-      'Sau khối JSON, chỉ viết thêm 1 dòng "Còn thiếu:" liệt kê ngắn gọn thông tin bạn chưa biết chính xác (ví dụ số CCQ khớp được của DCDS/DCBF) để tôi bổ sung.'
+      'Sau khối JSON, chỉ viết thêm 1 dòng "Còn thiếu:" liệt kê ngắn gọn thông tin bạn chưa biết chính xác để tôi bổ sung.'
     ].join('\n');
   }
 

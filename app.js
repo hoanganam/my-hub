@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   const R = window.Retire;
-  const KEY = 'retire_state_v1';
+  const KEY = 'retire_state_v2';
   const COLORS = ['#fbbf24', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fb923c', '#22d3ee', '#a3e635'];
   const TITLES = { overview: 'Tổng quan', portfolio: 'Danh mục', plan: 'Kế hoạch', gemini: 'Đồng bộ Gemini & AI' };
 
@@ -30,7 +30,14 @@
       }
     } catch (e) { /* dữ liệu hỏng -> nạp danh mục khởi đầu */ }
     const seed = R.initialPortfolioState ? R.initialPortfolioState() : R.defaultState();
-    try { localStorage.setItem(KEY, JSON.stringify(seed)); } catch (e) {}
+    try {
+      const oldRaw = localStorage.getItem('retire_state_v1');
+      if (oldRaw) {
+        const old = JSON.parse(oldRaw);
+        if (old && old.settings) seed.settings = Object.assign(seed.settings, old.settings);
+      }
+      localStorage.setItem(KEY, JSON.stringify(seed));
+    } catch (e) {}
     return seed;
   }
   let S = load();
@@ -142,12 +149,14 @@
     if (!S.assets.length) { el.innerHTML = noAssetsCard(); return; }
     const cls = sm.totalPnl >= 0 ? 'pos' : 'neg';
     const chips = [];
-    if (sm.totalPending > 0) chips.push('<span class="chip info">⏳ Đang chờ khớp: ' + money(sm.totalPending) + ' (đã tính vào tổng ' + money(sm.totalCommitted) + ')</span>');
-    if (sm.unvalued.length) chips.push('<span class="chip warn">💡 Bấm tab Gemini hoặc Cập nhật giá để tính lãi/lỗ theo giá thị trường hôm nay</span>');
+    if (sm.totalPending > 0) chips.push('<span class="chip info">⏳ Chờ khớp 19/11: ' + money(sm.totalPending) + ' (tổng vốn ' + money(sm.totalCommittedCost) + ')</span>');
+    if (sm.incompleteUnits && sm.incompleteUnits.length) {
+      chips.push('<span class="chip warn" style="cursor:pointer" data-action="goTab" data-tab="portfolio">⚠ Còn 3 đơn chưa điền số chỉ/CCQ (bấm để điền nhanh)</span>');
+    }
 
     let goal = '';
     if (S.goal && S.goal.amount > 0) {
-      const have = sm.totalCommitted;
+      const have = sm.totalCommittedCost;
       const p = Math.max(0, Math.min(100, (have / S.goal.amount) * 100));
       let line = '';
       if (S.goal.deadline) {
@@ -175,13 +184,13 @@
         '<span class="alloc-nums"><b>' + pct(a.currentPct) + '</b> <span class="muted">/ mục tiêu ' + pct(a.targetPct, 0) + (targetAmt ? ' (~' + fmt(targetAmt / 1e6) + 'tr)' : '') + '</span></span></div>' +
         '<div class="bar"><i style="width:' + Math.min(100, a.currentPct) + '%;background:' + c + '"></i>' + (a.targetPct > 0 ? '<b style="left:calc(' + Math.min(100, a.targetPct) + '% - 1px)"></b>' : '') + '</div>' +
         '<div style="display:flex;justify-content:space-between;align-items:center">' + drift +
-        '<span class="muted small">' + money(a.effectiveValue) + (a.pending > 0 ? ' (chờ ' + fmt(a.pending) + ')' : '') + ' · <span class="' + (a.pnl >= 0 ? 'pos' : 'neg') + '">' + (a.valued ? smoney(a.pnl) : 'vốn') + '</span></span></div></div>';
+        '<span class="muted small">Vốn ' + money(a.committedCost) + ' · Hiện tại ' + money(a.effectiveValue) + ' (<span class="' + (a.pnl >= 0 ? 'pos' : 'neg') + '">' + (a.valued ? smoney(a.pnl) : 'chưa đủ SL') + '</span>)</span></div></div>';
     }).join('');
 
     el.innerHTML =
-      '<div class="card hero"><div class="lbl">Tổng danh mục tích sản (gồm lệnh chờ khớp)</div><div class="big">' + money(sm.totalCommitted) + '</div>' +
-      '<div class="hero-row"><div><div class="lbl">Vốn đã giải ngân</div><div class="val">' + money(sm.totalCommittedCost) + '</div></div>' +
-      '<div><div class="lbl">Lãi / Lỗ tạm tính</div><div class="val ' + cls + '">' + smoney(sm.totalPnl) + ' <small>(' + spct(sm.totalPnlPct) + ')</small></div></div></div>' +
+      '<div class="card hero"><div class="lbl">Giá trị danh mục hiện tại (gồm chờ khớp)</div><div class="big">' + money(sm.totalCommitted) + '</div>' +
+      '<div class="hero-row"><div><div class="lbl">Tổng vốn đã giải ngân</div><div class="val">' + money(sm.totalCommittedCost) + '</div></div>' +
+      '<div><div class="lbl">Lãi / Lỗ (trên phần đã có SL)</div><div class="val ' + cls + '">' + smoney(sm.totalPnl) + ' <small>(' + spct(sm.totalPnlPct) + ')</small></div></div></div>' +
       (chips.length ? '<div class="chips">' + chips.join('') + '</div>' : '') + '</div>' +
       goal +
       '<div class="card"><h3>🥧 Tỷ trọng hiện tại vs Mục tiêu cuối năm 1</h3><div class="donut-wrap">' + donut(sm) +
@@ -194,9 +203,11 @@
 
   function txRow(t, unit) {
     const pend = t.status === 'pending';
+    const missingUnits = !pend && (t.units == null || t.units <= 0);
     return '<div class="tx" data-action="editTx" data-id="' + esc(t.id) + '"><span class="d">' + dmy(t.date) + '</span>' +
-      '<div><div class="a">' + money(t.amount) + (t.units != null ? ' <span class="muted small">· ' + String(t.units).replace('.', ',') + ' ' + esc(unit) + '</span>' : '') + '</div>' +
+      '<div style="flex:1"><div class="a">' + money(t.amount) + (t.units != null ? ' <span class="pos small">· ' + String(t.units).replace('.', ',') + ' ' + esc(unit) + '</span>' : '') + '</div>' +
       (t.note ? '<div class="n">' + esc(t.note) + '</div>' : '') + '</div>' +
+      (missingUnits ? '<span class="badge pending">+ Nhập số ' + esc(unit) + '</span>' : '') +
       (pend ? '<span class="badge pending">Chờ khớp</span><button class="btn sm mini" data-action="fillTx" data-id="' + esc(t.id) + '">✓ Đã khớp</button>' : '') + '</div>';
   }
 
@@ -206,21 +217,24 @@
     const cards = SUM.assets.map((a, i) => {
       const txs = S.transactions.filter((t) => t.assetCode === a.code).sort((x, y) => (x.date < y.date ? 1 : -1));
       const notes = [];
-      if (!a.valued && a.cost > 0) notes.push('<div class="note warn">💡 Đang hiển thị theo giá vốn. Bấm “💲 Cập nhật giá” để tính lãi/lỗ thực tế.</div>');
-      if (a.note === 'units-incomplete') notes.push('<div class="note warn">⚠ Một số lệnh chưa điền số lượng (' + esc(a.unit) + '), hãy bấm vào lệnh bên dưới để bổ sung số ' + esc(a.unit) + ' hoặc nhập Tổng giá trị hiện tại.</div>');
-      const priceLine = a.price && S.assets[i].valueBasis === 'price' ? money(a.price) + '/' + esc(a.unit) : '—';
+      if (a.note === 'units-incomplete') {
+        notes.push('<div class="note warn">⚠ Còn <b>' + a.missingUnitsCount + ' đơn</b> chưa điền số <b>' + esc(a.unit) + '</b> nên phần đó đang tạm tính bằng giá vốn. Chạm vào đơn bên dưới để nhập số ' + esc(a.unit) + ' (có gợi ý tự tính sẵn)!</div>');
+      }
+      const priceLine = a.price && S.assets[i].valueBasis === 'price'
+        ? money(a.price) + '/' + esc(a.unit) + (a.priceSource ? '<div class="muted" style="font-size:11px;margin-top:2px">' + esc(a.priceSource) + '</div>' : '')
+        : '—';
       return '<div class="card"><div class="asset-top"><span class="dot" style="background:' + COLORS[i % COLORS.length] + '"></span>' +
         '<div><div class="asset-name">' + esc(a.name) + '</div><div class="asset-sub">' + esc(R.KIND_LABEL[a.kind] || 'Khác') + ' · mục tiêu ' + pct(a.targetPct, 0) + ' · mã ' + esc(a.code) + '</div></div>' +
-        '<div class="asset-val">' + money(a.effectiveValue) + '<div class="p ' + (a.pnl >= 0 ? 'pos' : 'neg') + '">' + (a.valued ? smoney(a.pnl) + ' (' + spct(a.pnlPct) + ')' : 'Tỷ trọng ' + pct(a.currentPct)) + '</div></div></div>' +
-        '<div class="kv"><div><span>Vốn đã khớp</span>' + money(a.cost) + '</div><div><span>Tỷ trọng hiện tại</span>' + pct(a.currentPct) + ' (mục tiêu ' + pct(a.targetPct, 0) + ')</div>' +
-        '<div><span>Số lượng đang giữ</span>' + (a.unitsComplete ? String(+a.units.toFixed(4)).replace('.', ',') + ' ' + esc(a.unit) : (a.units > 0 ? '≥ ' + String(+a.units.toFixed(4)).replace('.', ',') + ' ' + esc(a.unit) : '—')) + '</div>' +
-        '<div><span>Giá hiện tại' + (a.asOf ? ' · ' + dmy(a.asOf) : '') + '</span>' + priceLine + '</div>' +
+        '<div class="asset-val">' + money(a.effectiveValue) + '<div class="p ' + (a.pnl >= 0 ? 'pos' : 'neg') + '">' + (a.valued ? smoney(a.pnl) + ' (' + spct(a.pnlPct) + ')' : 'Vốn ' + fmt(a.committedCost) + ' ₫') + '</div></div></div>' +
+        '<div class="kv"><div><span>Tổng vốn (gồm chờ khớp)</span>' + money(a.committedCost) + '</div><div><span>Tỷ trọng hiện tại</span>' + pct(a.currentPct) + ' (mục tiêu ' + pct(a.targetPct, 0) + ')</div>' +
+        '<div><span>Số lượng đã ghi nhận</span>' + (a.unitsComplete ? String(+a.units.toFixed(4)).replace('.', ',') + ' ' + esc(a.unit) : (a.units > 0 ? String(+a.units.toFixed(4)).replace('.', ',') + ' ' + esc(a.unit) + ' (thiếu ' + a.missingUnitsCount + ' đơn)' : 'Chưa điền (' + a.missingUnitsCount + ' đơn)')) + '</div>' +
+        '<div><span>Giá / NAV mới nhất' + (a.asOf ? ' · ' + dmy(a.asOf) : '') + '</span>' + priceLine + '</div>' +
         (a.pending > 0 ? '<div><span>Đang chờ khớp</span>' + money(a.pending) + '</div>' : '') + '</div>' +
         notes.join('') +
         '<div class="btn-row"><button class="btn sm" data-action="priceAsset" data-code="' + esc(a.code) + '">💲 Cập nhật giá</button>' +
         '<button class="btn sm" data-action="addTx" data-code="' + esc(a.code) + '">+ Giao dịch</button>' +
         '<button class="btn sm ghost" data-action="editAsset" data-code="' + esc(a.code) + '">⚙️ Sửa</button></div>' +
-        '<details open><summary>Các khoản đã giải ngân (' + txs.length + ')</summary>' +
+        '<details open><summary>Các khoản đã giải ngân (' + txs.length + ') — chạm vào dòng để sửa / điền số ' + esc(a.unit) + '</summary>' +
         (txs.length ? txs.map((t) => txRow(t, a.unit)).join('') : '<div class="muted small">Chưa có giao dịch.</div>') + '</details></div>';
     }).join('');
     el.innerHTML = cards + '<button class="btn w100" data-action="addAsset">+ Thêm kênh tài sản mới</button>';
@@ -270,7 +284,7 @@
     $('#tab-gemini').innerHTML =
       '<div class="card hero" style="border-color:#fbbf24">' +
       '<h3>🤖 Cách 1: Nhập lệnh / Hỏi AI trực tiếp bằng API</h3>' +
-      '<p class="muted">Gõ tự nhiên giao dịch mới hoặc câu hỏi (VD: <i>“Lệnh DCBF 200k ngày 19/11 đã khớp được 7,65 CCQ; cập nhật giá vàng hôm nay 14,2 triệu/chỉ”</i>). Nếu bạn gắn Gemini API Key hoặc OpenAI API Key bên dưới, App sẽ tự gọi AI và cập nhật bảng tính ngay lập tức!</p>' +
+      '<p class="muted">Gõ tự nhiên giao dịch mới hoặc câu hỏi (VD: <i>“Lệnh DCBF 200k ngày 19/11 đã khớp được 6,46 CCQ; mua thêm 2,15tr DCDS”</i>). Khi gắn Gemini API Key hoặc OpenAI API Key bên dưới, App sẽ tự gọi AI và cập nhật bảng tính ngay lập tức!</p>' +
       '<textarea id="aiQuickInput" style="min-height:80px;margin-top:8px;font-family:inherit" placeholder="VD: Mình vừa mua thêm 2.150.000đ quỹ DCDS và 1.800.000đ quỹ DCBF hôm nay..."></textarea>' +
       '<button class="btn primary w100" id="runAiBtn" data-action="runAiDirect">⚡ Gửi cho AI phân tích & tự cập nhật App</button>' +
       '<div id="aiDirectOutput"></div>' +
@@ -285,7 +299,7 @@
       '</details></div>' +
 
       '<div class="card"><h3>💬 Cách 2: Đồng bộ với đoạn chat Gemini “Hưu trí”</h3>' +
-      '<p class="muted">Dùng khi bạn đang trò chuyện trực tiếp trong đoạn chat <b>“Hưu trí”</b> trên web/app Gemini:</p>' +
+      '<p class="muted">Dùng khi bạn trò chuyện trực tiếp trong đoạn chat <b>“Hưu trí”</b> trên web/app Gemini:</p>' +
       '<ol class="steps"><li>Bấm <b>Copy câu hỏi</b> bên dưới.</li><li>Bấm <b>Mở đoạn chat Gemini “Hưu trí”</b>, dán và gửi.</li><li>Copy khối JSON Gemini trả lời → dán vào ô <b>Kết quả từ Gemini</b> bên dưới → bấm <b>Áp dụng</b>.</li></ol>' +
       '<div class="btn-col">' +
       '<button class="btn primary" data-action="copyPrompt" data-kind="sync">📋 Copy câu hỏi: Lấy toàn bộ chi tiết & số CCQ từ Gemini</button>' +
@@ -305,7 +319,7 @@
       '<div class="btn-col"><button class="btn" data-action="copyBackup">📋 Copy bản sao lưu (JSON)</button>' +
       '<button class="btn" data-action="downloadBackup">💾 Tải file sao lưu (.json)</button>' +
       '<label class="btn" style="margin:0;cursor:pointer;color:var(--text)">📂 Khôi phục từ file sao lưu<input type="file" id="restoreFile" accept=".json,application/json" style="display:none"></label>' +
-      '<button class="btn" data-action="loadSeedPortfolio">🔄 Khôi phục về bảng mẫu 17/11/2026 (7.672.000 ₫)</button>' +
+      '<button class="btn" data-action="loadSeedPortfolio">🔄 Khôi phục về dữ liệu chuẩn ngày 17/11/2026</button>' +
       '<button class="btn danger" data-action="resetAll">🗑 Xóa trắng toàn bộ dữ liệu</button></div>' +
       '<p class="muted small" style="margin-top:10px">Bảo mật: Toàn bộ dữ liệu tài chính và API Key chỉ nằm trong bộ nhớ trình duyệt trên thiết bị của bạn.</p></div>';
 
@@ -352,7 +366,7 @@
       '',
       'Nhiệm vụ:',
       '1. Trả lời ngắn gọn, rõ ràng về tình hình lãi/lỗ, tỷ trọng và lời khuyên phân bổ cho yêu cầu của người dùng.',
-      '2. Nếu người dùng thông báo giao dịch mới, khớp lệnh, thay đổi mục tiêu, hoặc cập nhật giá (vàng / NAV DCDS / NAV DCBF), BẮT BUỘC kèm theo khối ```json chứa ТОÀN BỘ phần cập nhật theo đúng schema:',
+      '2. Nếu người dùng thông báo giao dịch mới, khớp lệnh, bổ sung số chỉ/CCQ, hoặc cập nhật giá (vàng / NAV DCDS / NAV DCBF), BẮT BUỘC kèm theo khối ```json chứa phần cập nhật theo đúng schema:',
       '{ "asOf": "' + today() + '", "transactions": [ { "asset": "GOLD|DCDS|DCBF", "date": "YYYY-MM-DD", "amount": 0, "units": null, "status": "done|pending", "note": "" } ], "prices": [ { "asset": "GOLD|DCDS|DCBF", "price": 0, "source": "" } ] }',
       'Chỉ đưa vào mảng transactions những giao dịch MỚI hoặc giao dịch vừa đổi trạng thái/số lượng.'
     ].join('\n');
@@ -482,13 +496,17 @@
   function openTxForm(code, id) {
     const t = id ? S.transactions.find((x) => x.id === id) : null;
     const ac = t ? t.assetCode : code;
+    const assetObj = S.assets.find((a) => a.code === ac);
+    const unitLbl = assetObj ? assetObj.unit : 'đơn vị';
+    const estUnits = (t && assetObj && assetObj.price > 0) ? +(t.amount / assetObj.price).toFixed(4) : null;
     const opts = S.assets.map((a) => '<option value="' + esc(a.code) + '"' + (a.code === ac ? ' selected' : '') + '>' + esc(a.name) + '</option>').join('');
     openModal(t ? 'Sửa giao dịch' : 'Thêm giao dịch',
       '<label>Tài sản</label><select name="asset">' + opts + '</select>' +
       '<label>Ngày</label><input type="date" name="date" value="' + (t ? esc(t.date) : today()) + '">' +
       '<label>Số tiền đã bỏ ra (₫)</label><input name="amount" inputmode="numeric" value="' + (t ? fmt(t.amount) : '') + '" placeholder="VD: 1.400.000">' +
-      '<label>Số lượng mua được <span style="font-weight:400">(số chỉ vàng / số CCQ — tùy chọn, cần để tính lãi lỗ theo giá)</span></label>' +
-      '<input name="units" inputmode="decimal" value="' + (t && t.units != null ? String(t.units).replace('.', ',') : '') + '" placeholder="VD: 0,1">' +
+      '<label>Số lượng mua được (' + esc(unitLbl) + ') <span style="font-weight:400">— cần để tính lãi lỗ theo giá</span></label>' +
+      '<input id="txUnitsInput" name="units" inputmode="decimal" value="' + (t && t.units != null ? String(t.units).replace('.', ',') : '') + '" placeholder="VD: 0,1 hoặc 4,34">' +
+      (estUnits ? '<div class="row" style="margin-top:6px"><button type="button" class="btn sm" onclick="document.getElementById(\'txUnitsInput\').value=\'' + String(estUnits).replace('.', ',') + '\'">⚡ Điền nhanh ~' + String(estUnits).replace('.', ',') + ' ' + esc(unitLbl) + ' (tạm tính theo giá hiện tại)</button></div>' : '') +
       '<label>Trạng thái</label><select name="status"><option value="done"' + (t && t.status === 'pending' ? '' : ' selected') + '>Đã khớp / đã mua</option><option value="pending"' + (t && t.status === 'pending' ? ' selected' : '') + '>Chờ khớp</option></select>' +
       '<label>Ghi chú</label><input name="note" value="' + esc(t ? t.note : '') + '" placeholder="VD: Huy Thanh Jewelry">' +
       '<button class="btn primary w100" type="submit">Lưu</button>' +
@@ -511,14 +529,14 @@
     const hint = a.kind === 'gold' ? 'Vàng: nhập giá MUA VÀO của tiệm (số tiền bạn nhận nếu bán), không phải giá bán ra.' : 'Quỹ: nhập NAV/CCQ mới nhất hoặc tổng giá trị hiện tại trên app DragonX/Fmarket.';
     openModal('Cập nhật giá — ' + a.name,
       '<p class="muted" style="margin-top:8px">' + hint + '</p>' +
-      '<label>Cách 1 — Giá hiện tại của 1 ' + esc(a.unit) + ' (₫)</label><input name="price" inputmode="decimal" value="' + (a.price && a.valueBasis === 'price' ? fmt(a.price) : '') + '" placeholder="VD: 14.000.000">' +
+      '<label>Cách 1 — Giá hiện tại của 1 ' + esc(a.unit) + ' (₫)</label><input name="price" inputmode="decimal" value="' + (a.price && a.valueBasis === 'price' ? String(a.price).replace('.', ',') : '') + '" placeholder="VD: 13.350.000">' +
       '<label>Cách 2 — Tổng giá trị hiện tại của cả kênh này (₫)</label><input name="total" inputmode="numeric" value="' + (a.marketValue && a.valueBasis === 'manual' ? fmt(a.marketValue) : '') + '" placeholder="Dùng khi chưa nhập số lượng CCQ/chỉ">' +
       '<p class="muted small" style="margin-top:8px">Điền 1 trong 2 ô. Cách 2 cực tiện nếu bạn chỉ muốn nhìn tổng tiền hiện tại trên app quỹ rồi gõ vào để tính ngay lãi/lỗ!</p>' +
       '<button class="btn primary w100" type="submit">Lưu giá</button>',
       {
         onSubmit(fd) {
           const price = R.toNumber(fd.price, { decimal: true }), total = R.toNumber(fd.total);
-          if (price > 0) { a.price = price; a.priceAsOf = today(); a.priceSource = 'nhập tay'; a.valueBasis = 'price'; }
+          if (price > 0) { a.price = price; a.priceAsOf = today(); a.priceSource = 'Cập nhật thủ công'; a.valueBasis = 'price'; }
           else if (total >= 0 && total !== null) { a.marketValue = total; a.valueAsOf = today(); a.valueBasis = 'manual'; }
           else { toast('Hãy nhập giá hoặc tổng giá trị'); return false; }
           commit(); toast('Đã cập nhật giá');
@@ -551,7 +569,12 @@
     fillTx: (d, e) => {
       e.stopPropagation();
       const t = S.transactions.find((x) => x.id === d.id); if (!t) return;
-      t.status = 'done'; commit(); toast('Đã đánh dấu khớp lệnh — nhớ bổ sung số CCQ nếu có');
+      t.status = 'done';
+      const a = S.assets.find((x) => x.code === t.assetCode);
+      if (t.units == null && a && a.price > 0) {
+        t.units = +(t.amount / a.price).toFixed(2);
+      }
+      commit(); toast('Đã đánh dấu khớp lệnh');
     },
     priceAsset: (d) => openPriceForm(d.code),
     setPlanAmt: (d) => {
@@ -624,11 +647,11 @@
       callDirectAI(txt);
     },
     loadSeedPortfolio: () => {
-      if (S.assets.length && !confirm('Khôi phục danh mục mẫu 3 kênh ngày 17/11/2026 (7.672.000 ₫)?')) return;
+      if (S.assets.length && !confirm('Khôi phục dữ liệu chuẩn ngày 17/11/2026 (đã đồng bộ từ Gemini)?')) return;
       const keepSettings = S.settings;
       S = R.initialPortfolioState();
       S.settings = Object.assign(S.settings, keepSettings);
-      save(); renderAll(); goTab('overview'); toast('Đã nạp danh mục 7.672.000 ₫');
+      save(); renderAll(); goTab('overview'); toast('Đã khôi phục dữ liệu chuẩn 17/11/2026');
     },
     copyBackup: async () => {
       const ok = await copyText(JSON.stringify({ __retireBackup: 1, exportedAt: new Date().toISOString(), state: S }, null, 2));
