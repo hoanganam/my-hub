@@ -1,4 +1,4 @@
-const CACHE = 'my-hub-retire-v11';
+const CACHE = 'my-hub-retire-v12';
 const ASSETS = [
   './',
   './index.html',
@@ -9,7 +9,8 @@ const ASSETS = [
   './icon.svg',
   './icon-180.png',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './fittest.jpg'
 ];
 
 self.addEventListener('install', (e) => {

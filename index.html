@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Quỹ Hưu Trí</title>
+  <title>My Hub — Quỹ Hưu Trí & Fit Test</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#059669">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Hưu Trí">
+  <meta name="apple-mobile-web-app-title" content="My Hub">
   <link rel="apple-touch-icon" href="icon-180.png">
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
@@ -27,7 +27,21 @@
 
   <main id="main">
     <section id="tab-overview" class="tab active"></section>
+    <section id="tab-fittest" class="tab"></section>
   </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-action="goTab" data-tab="overview">
+      <svg class="svg-ico" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+      <span>Quỹ Hưu Trí</span>
+    </button>
+    <button class="nav-item" data-action="goTab" data-tab="fittest">
+      <svg class="svg-ico" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>Fit Test</span>
+    </button>
+  </nav>
+
+  <div id="toast" class="toast hidden"></div>
 
   <script src="logic.js"></script>
   <script src="app.js"></script>

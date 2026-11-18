@@ -31,6 +31,7 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
+.hidden { display: none !important; }
 
 .svg-ico {
   width: 20px; height: 20px;
@@ -60,7 +61,27 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -.5px; color: var(--text
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
-#main { max-width: 560px; margin: 0 auto; padding: 6px 16px calc(36px + var(--safe-bottom)); }
+#main { max-width: 560px; margin: 0 auto; padding: 6px 16px calc(92px + var(--safe-bottom)); }
+.tab { display: none; }
+.tab.active { display: block; animation: fade .2s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Bottom Nav 2 Tabs */
+.bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  display: flex; background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--line);
+  padding: 7px 16px calc(10px + var(--safe-bottom));
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.04);
+}
+.nav-item {
+  flex: 1; background: none; border: none; color: var(--dim);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700; cursor: pointer; padding: 4px 0;
+  border-radius: 12px; transition: color .15s;
+}
+.nav-item.active { color: var(--pos); }
 
 .card {
   background: var(--card);
@@ -105,7 +126,7 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -.5px; color: var(--text
 }
 .hbadge.gold { background: #fef3c7; color: #92400e; }
 
-/* Advisor Action Signal Card (Mua / Không mua rõ ràng) */
+/* Advisor Action Signal Card */
 .brief-card {
   background: #ffffff;
   border-color: #cbd5e1;
@@ -231,3 +252,97 @@ summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--muted
 .tx .n { color: var(--muted); font-size: 11px; }
 .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px; }
 .badge.pending { background: var(--gold-bg); color: #92400e; }
+
+/* ================= FIT TEST TAB ================= */
+.ft-timer-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff; border: none;
+}
+.ft-timer-left .lbl { color: #94a3b8; }
+.ft-clock {
+  font-size: 36px; font-weight: 900; letter-spacing: -1px;
+  font-variant-numeric: tabular-nums; color: #34d399; line-height: 1.1;
+  margin-top: 2px;
+}
+.ft-timer-btns { display: flex; gap: 8px; }
+.btn {
+  background: var(--card2); border: 1px solid var(--line); color: var(--text);
+  border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 800;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: inherit;
+}
+.btn:active { transform: scale(.97); }
+.btn.primary { background: #10b981; color: #ffffff; border-color: transparent; }
+.btn.dark { background: rgba(255, 255, 255, 0.14); color: #ffffff; border-color: transparent; }
+
+.ft-tabs {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+  margin-bottom: 14px;
+}
+.ft-pill {
+  background: var(--card2); border: 1px solid var(--line); color: var(--muted);
+  border-radius: 14px; padding: 9px 4px; text-align: center; cursor: pointer;
+}
+.ft-pill b { display: block; font-size: 12px; font-weight: 800; color: var(--text); }
+.ft-pill span { font-size: 10px; font-weight: 700; opacity: 0.8; }
+.ft-pill.active {
+  background: var(--pos); border-color: var(--pos); color: #ffffff;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.22);
+}
+.ft-pill.active b { color: #ffffff; }
+
+.ft-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 11px 0; border-top: 1px solid var(--line);
+}
+.ft-row:first-of-type { border-top: none; }
+.ft-move-name { font-size: 14px; font-weight: 800; color: var(--text); }
+.ft-move-note { font-size: 11px; font-weight: 700; color: var(--gold); }
+.ft-diff {
+  display: inline-block; font-size: 11px; font-weight: 800;
+  padding: 2px 7px; border-radius: 99px; margin-left: 6px;
+}
+.ft-diff.up { background: var(--pos-bg); color: #065f46; }
+.ft-diff.down { background: var(--neg-bg); color: var(--neg); }
+
+.ft-stepper {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--card2); border: 1px solid var(--line);
+  border-radius: 12px; padding: 3px;
+}
+.ft-step-btn {
+  width: 32px; height: 32px; border-radius: 9px; border: none;
+  background: var(--card); color: var(--text); font-size: 16px; font-weight: 800;
+  cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.ft-input {
+  width: 54px; border: none; background: transparent;
+  text-align: center; font-size: 16px; font-weight: 900; color: var(--text);
+  font-variant-numeric: tabular-nums; outline: none; font-family: inherit;
+}
+
+/* Matrix Table (8 moves x 5 tests) */
+.ft-table-wrap { overflow-x: auto; margin-top: 6px; }
+.ft-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ft-table th {
+  text-align: center; font-size: 10px; font-weight: 800; color: var(--muted);
+  padding: 7px 4px; border-bottom: 1px solid var(--line); text-transform: uppercase;
+}
+.ft-table th:first-child, .ft-table td:first-child { text-align: left; }
+.ft-table td {
+  text-align: center; padding: 9px 4px; border-bottom: 1px solid var(--line);
+  font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.ft-table tr.ft-total td {
+  font-weight: 900; color: var(--pos); border-bottom: none;
+  background: var(--card2);
+}
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(92px + var(--safe-bottom));
+  transform: translateX(-50%); z-index: 200; max-width: 88vw;
+  background: #0f172a; color: #ffffff;
+  border-radius: 99px; padding: 11px 18px; font-size: 13px; font-weight: 700;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25); text-align: center;
+}
