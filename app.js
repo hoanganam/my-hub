@@ -1,11 +1,11 @@
-/* app.js — Quỹ Hưu Trí (Giao diện Sáng · Icon nét mảnh Lucide · Tối giản).
+/* app.js — Quỹ Hưu Trí "Kiềng 3 Chân" (Giao diện Sáng · Icon nét mảnh Lucide · Tối giản).
  * Mọi dữ liệu và API Key chỉ lưu cục bộ trong localStorage trên iPhone của bạn. */
 (function () {
   'use strict';
   const R = window.Retire;
-  const KEY = 'retire_state_v2';
+  const KEY = 'retire_state_v3';
   const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#f97316'];
-  const TITLES = { overview: 'Quỹ Hưu Trí', portfolio: 'Tài sản của tôi', plan: 'Nhịp góp tháng tới', gemini: 'Trợ lý Gemini' };
+  const TITLES = { overview: 'Quỹ Hưu Trí', portfolio: 'Tài sản của tôi', plan: 'Nhịp góp tháng tới', gemini: 'Cố vấn Gemini' };
   const ICON_BG = { gold: '#fef3c7', fund: '#d1fae5', stock: '#dbeafe', cash: '#e0e7ff', other: '#f3e8ff' };
   const ICON_FG = { gold: '#d97706', fund: '#059669', stock: '#2563eb', cash: '#4f46e5', other: '#7c3aed' };
 
@@ -67,7 +67,7 @@
     } catch (e) {}
     const seed = R.initialPortfolioState ? R.initialPortfolioState() : R.defaultState();
     try {
-      const oldRaw = localStorage.getItem('retire_state_v1');
+      const oldRaw = localStorage.getItem('retire_state_v2') || localStorage.getItem('retire_state_v1');
       if (oldRaw) {
         const old = JSON.parse(oldRaw);
         if (old && old.settings) seed.settings = Object.assign(seed.settings, old.settings);
@@ -140,7 +140,7 @@
 
   function noAssetsCard() {
     return '<div class="card empty"><h2>Khởi động Quỹ Hưu Trí</h2>' +
-      '<button class="btn primary w100" data-action="loadSeedPortfolio">Nạp danh mục 3 kênh (7.672.000 ₫)</button>' +
+      '<button class="btn primary w100" data-action="loadSeedPortfolio">Nạp danh mục Kiềng 3 Chân (7.672.000 ₫)</button>' +
       '<button class="btn w100" data-action="goTab" data-tab="gemini">Đồng bộ từ Gemini</button></div>';
   }
 
@@ -215,24 +215,32 @@
       '<div class="leg-item"><span class="dot" style="background:' + colorOf(a.code) + '"></span><span>' + esc(a.code) + '</span><span class="pct">' + pct(a.currentPct) + '</span></div>'
     ).join('');
 
+    const pendTx = S.transactions.find((t) => t.status === 'pending');
+    const pendingBanner = pendTx
+      ? '<div class="card" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fffbeb;border-color:#fde68a">' +
+        '<div style="font-size:13px;color:#92400e"><b>Lệnh ' + esc(pendTx.assetCode) + ' ' + shortVnd(pendTx.amount) + '</b> · Khớp 19/11/2026</div>' +
+        '<button class="btn sm primary" data-action="fillTx" data-id="' + esc(pendTx.id) + '">Xác nhận khớp</button></div>'
+      : '';
+
     el.innerHTML =
       '<div class="card hero">' +
       '<div class="lbl">Tài sản tích lũy của bạn</div>' +
       '<div class="big">' + money(total) + '</div>' +
       '<div class="hero-badges">' +
       '<span class="hbadge gold">' + ico('check', 'sm') + ' ' + txCount + ' lệnh kỷ luật</span>' +
-      '<span class="hbadge">Đủ 3/3 kênh</span>' +
+      '<span class="hbadge">Kiềng 3 Chân</span>' +
       (sm.totalPending > 0 ? '<span class="hbadge">' + ico('clock', 'sm') + ' ' + shortVnd(sm.totalPending) + ' chờ khớp</span>' : '') +
       '</div></div>' +
+      pendingBanner +
 
       '<div class="card goal-card">' +
-      '<div class="goal-head"><div><div class="lbl">Hành trình Năm 1</div><h3 style="margin:2px 0 0">Mục tiêu ' + money(goalAmt) + '</h3></div>' +
+      '<div class="goal-head"><div><div class="lbl">Hành trình Năm 1 (hạn 06/10/2027)</div><h3 style="margin:2px 0 0">Mục tiêu ' + money(goalAmt) + '</h3></div>' +
       '<div class="goal-pct">' + pct(goalPct) + '</div></div>' +
       '<div class="progress"><i style="width:' + goalPct + '%"></i></div>' +
       '<div class="milestones">' + msHTML + '</div>' +
       '<div class="cheer-banner">' + cheer + '</div></div>' +
 
-      '<div class="card"><h3>Cơ cấu 3 trụ cột</h3>' +
+      '<div class="card"><h3>Cơ cấu Kiềng 3 Chân</h3>' +
       '<div class="donut-wrap">' + donut(sm) + '<div class="donut-legend">' + legend + '</div></div>' +
       '<div>' + rows + '</div></div>';
   }
@@ -287,9 +295,10 @@
       '<button class="btn sm" data-action="setPlanAmt" data-amt="3500000">3,5 triệu</button>' +
       '<button class="btn sm" data-action="setPlanAmt" data-amt="3750000">3,75 triệu</button>' +
       '<button class="btn sm" data-action="setPlanAmt" data-amt="4000000">4,0 triệu</button></div>' +
-      '<label for="planAmount">Hoặc nhập số tiền khác (₫)</label>' +
+      '<label for="planAmount">Ngân sách tháng này (₫)</label>' +
       '<input id="planAmount" inputmode="numeric" placeholder="3.750.000" value="' + (S.monthlyContribution ? fmt(S.monthlyContribution) : '') + '">' +
-      '<div id="planResult"></div></div>' +
+      '<div id="planResult"></div>' +
+      '<div class="cheer-banner" style="margin-top:12px;background:#eff6ff;border-color:#bfdbfe;color:#1e40af;font-weight:600">Chiến lược cuối năm: Rút ~12,6tr từ DCBF mua nốt 0,9 chỉ vàng 9999 · Giữ lại 10tr đệm an toàn.</div></div>' +
       '<details class="card"><summary>Chỉnh mục tiêu Năm 1 (' + pct(ts, 0) + ' · ' + shortVnd(S.goal.amount || 50000000) + ')</summary>' +
       '<div style="margin-top:8px">' + trows + '</div>' +
       (!tsOK && ts > 0 ? '<button class="btn sm w100" data-action="normalizeTargets">Chuẩn hóa về 100%</button>' : '') +
@@ -303,18 +312,21 @@
     const box = $('#planResult');
     if (!box) return;
     const amt = R.toNumber(($('#planAmount') || {}).value);
-    const plan = amt > 0 ? R.planContribution(SUM, amt) : null;
+    const plan = amt > 0 ? R.planContribution(SUM, amt, 1000, { dcbfTransit: S.settings.dcbfTransit !== false }) : null;
     lastPlan = plan && plan.ok ? plan : null;
     if (!plan || !plan.ok) { box.innerHTML = ''; return; }
     box.innerHTML = '<div class="plan-cards">' +
       plan.rows.map((r) => {
         const a = S.assets.find((x) => x.code === r.code) || { kind: 'fund', code: r.code };
         const buy = r.alloc > 0;
+        const subHint = r.code === 'DCBF' && buy
+          ? 'Đệm 20% + Trạm gom mua 0,9 chỉ vàng'
+          : ('Tỷ trọng lên ' + pct(r.afterPct) + ' / mục tiêu ' + pct(r.targetPct, 0));
         return '<div class="pcard ' + (buy ? 'active-buy' : '') + '">' +
           '<div class="pcard-left"><div class="asset-ico" style="width:36px;height:36px;background:' + iconBgOf(a) + ';color:' + iconFgOf(a) + '">' + iconOf(a, 'sm') + '</div>' +
           '<div><div class="pcard-name">' + esc(r.name) + '</div>' +
-          '<div class="pcard-sub">Tỷ trọng lên ' + pct(r.afterPct) + ' (mục tiêu ' + pct(r.targetPct, 0) + ')</div></div></div>' +
-          '<div class="pcard-amt ' + (buy ? '' : 'zero') + '">' + (buy ? '+' + money(r.alloc) : 'Ngưng mua') + '</div></div>';
+          '<div class="pcard-sub">' + esc(subHint) + '</div></div></div>' +
+          '<div class="pcard-amt ' + (buy ? '' : 'zero') + '">' + (buy ? '+' + money(r.alloc) : 'Tạm ngưng') + '</div></div>';
       }).join('') + '</div>' +
       '<button class="btn primary w100" data-action="createPlanOrders">Ghi lệnh góp tháng này vào danh mục</button>';
   }
@@ -323,8 +335,8 @@
   function initGemini() {
     $('#tab-gemini').innerHTML =
       '<div class="card">' +
-      '<h3>Báo giao dịch mới cho AI</h3>' +
-      '<textarea id="aiQuickInput" style="min-height:74px" placeholder="VD: Lệnh DCBF 200k đã khớp 6,46 CCQ; tháng 12 mới mua thêm 2,15 triệu DCDS..."></textarea>' +
+      '<h3>Báo giao dịch / Hỏi Cố vấn AI</h3>' +
+      '<textarea id="aiQuickInput" style="min-height:74px" placeholder="VD: Lệnh DCBF 200k đã khớp 6,46 CCQ; tháng 12 có 3,8 triệu chia sao..."></textarea>' +
       '<button class="btn primary w100" id="runAiBtn" data-action="runAiDirect">' + ico('sparkle', 'sm') + ' Gửi AI & Tự cập nhật</button>' +
       '<div id="aiDirectOutput"></div></div>' +
 
@@ -332,7 +344,7 @@
       '<div class="btn-col">' +
       '<a id="openGemini" class="btn gold" target="_blank" rel="noopener">Mở chat Gemini “Hưu trí” ' + ico('ext', 'sm') + '</a>' +
       '<div class="row" style="margin-top:0">' +
-      '<button class="btn sm" data-action="copyPrompt" data-kind="price">' + ico('copy', 'sm') + ' Hỏi giá hôm nay</button>' +
+      '<button class="btn sm" data-action="copyPrompt" data-kind="price">' + ico('copy', 'sm') + ' Bản tin giá 9h sáng</button>' +
       '<button class="btn sm" data-action="copyReport">' + ico('copy', 'sm') + ' Copy Báo cáo</button></div></div>' +
       '<label for="pasteBox">Dán JSON từ Gemini vào đây</label>' +
       '<textarea id="pasteBox" style="min-height:74px" placeholder="Dán khối ```json ... ``` của Gemini vào đây"></textarea>' +
@@ -350,7 +362,7 @@
       '<div class="row"><input id="geminiUrl" inputmode="url"><button class="btn sm" style="flex:0 0 auto" data-action="saveGeminiUrl">Lưu</button></div>' +
       '<div class="btn-col"><button class="btn sm" data-action="downloadBackup">Tải file sao lưu (.json)</button>' +
       '<label class="btn sm" style="margin:0;cursor:pointer">Khôi phục từ file<input type="file" id="restoreFile" accept=".json,application/json" style="display:none"></label>' +
-      '<button class="btn sm" data-action="loadSeedPortfolio">Khôi phục dữ liệu chuẩn 17/11/2026</button></div></details>';
+      '<button class="btn sm" data-action="loadSeedPortfolio">Khôi phục dữ liệu chuẩn 18/11/2026</button></div></details>';
 
     $('#pasteBox').addEventListener('input', debounce(previewImport, 250));
     $('#restoreFile').addEventListener('change', (e) => {
@@ -387,10 +399,13 @@
     }
 
     const sysPrompt = [
-      'Bạn là trợ lý quản lý Quỹ Hưu Trí cá nhân (3 kênh: GOLD - Vàng 24K mục tiêu 28%, DCDS - Quỹ cổ phiếu mục tiêu 52%, DCBF - Quỹ trái phiếu mục tiêu 20%; mục tiêu năm 1: 50.000.000 VND).',
+      'Bạn là Cố vấn Quản lý Quỹ Hưu Trí Tự Động theo chiến lược "Kiềng 3 Chân" (Mục tiêu 50.000.000 VND hạn 2027-10-06):',
+      '- DCDS (Quỹ cổ phiếu Dragon Capital): mục tiêu 52% (~26tr). Ưu tiên gom khi NAV điều chỉnh giảm.',
+      '- GOLD (Vàng 24K ép vỉ / nhẫn 9999): mục tiêu 28% (~14tr = 1 chỉ). Hiện đã giải ngân 7.072.000đ (92,2%) nên TẠM DỪNG mua vàng bằng tiền mặt hàng tháng; chỉ mua khi săn được thẻ 1 phân 0đ tiền công.',
+      '- DCBF (Quỹ trái phiếu Dragon Capital): mục tiêu giữ lại 20% (~10tr) + làm trạm trung chuyển hưởng lãi kép 7,5-8,5%/năm. Mỗi tháng (ngân sách 3,5-4tr) chia ~2,15tr vào DCDS và ~1,75-1,85tr vào DCBF; cuối năm rút ~12,6tr từ DCBF mua nốt 0,9 chỉ vàng.',
       'Hôm nay là ' + today() + '. Danh mục hiện tại:',
       JSON.stringify(R.toExport(S, today()), null, 2),
-      'Hãy trả lời ngắn gọn, truyền động lực (dưới 80 từ) và nếu có giao dịch/giá mới thì BẮT BUỘC kèm khối ```json theo schema:',
+      'Hãy trả lời ngắn gọn, truyền động lực (dưới 80 từ) và nếu có giao dịch/khớp lệnh/giá mới thì BẮT BUỘC kèm khối ```json theo schema:',
       '{ "asOf": "' + today() + '", "transactions": [ { "asset": "GOLD|DCDS|DCBF", "date": "YYYY-MM-DD", "amount": 0, "units": null, "status": "done|pending", "note": "" } ], "prices": [ { "asset": "GOLD|DCDS|DCBF", "price": 0, "source": "" } ] }'
     ].join('\n');
 
@@ -645,11 +660,11 @@
       callDirectAI(txt);
     },
     loadSeedPortfolio: () => {
-      if (S.assets.length && !confirm('Khôi phục dữ liệu chuẩn ngày 17/11/2026?')) return;
+      if (S.assets.length && !confirm('Khôi phục dữ liệu chuẩn ngày 18/11/2026?')) return;
       const keepSettings = S.settings;
       S = R.initialPortfolioState();
       S.settings = Object.assign(S.settings, keepSettings);
-      save(); renderAll(); goTab('overview'); toast('Đã nạp dữ liệu 17/11/2026');
+      save(); renderAll(); goTab('overview'); toast('Đã nạp dữ liệu 18/11/2026');
     },
     downloadBackup: () => {
       const blob = new Blob([JSON.stringify({ __retireBackup: 1, exportedAt: new Date().toISOString(), state: S }, null, 2)], { type: 'application/json' });

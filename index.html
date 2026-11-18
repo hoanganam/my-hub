@@ -17,9 +17,11 @@
 <body>
   <header class="app-header">
     <div>
+      <div id="hdrSub" class="hdr-sub">🌱 Tự do tài chính</div>
       <div id="hdrSub" class="hdr-sub">Tự do tài chính</div>
       <h1 id="hdrTitle">Quỹ Hưu Trí</h1>
     </div>
+    <button id="maskBtn" class="icon-btn" data-action="toggleMask" aria-label="Ẩn/hiện số tiền" title="Ẩn/hiện số tiền">👁</button>
     <button id="maskBtn" class="icon-btn" data-action="toggleMask" aria-label="Ẩn/hiện số tiền" title="Ẩn/hiện số tiền">
       <svg class="svg-ico" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
@@ -33,6 +35,10 @@
   </main>
 
   <nav class="bottom-nav">
+    <button class="nav-item active" data-action="goTab" data-tab="overview"><span class="ni">🏆</span><span>Hành trình</span></button>
+    <button class="nav-item" data-action="goTab" data-tab="portfolio"><span class="ni">💼</span><span>Tài sản</span></button>
+    <button class="nav-item" data-action="goTab" data-tab="plan"><span class="ni">🚀</span><span>Tháng tới</span></button>
+    <button class="nav-item" data-action="goTab" data-tab="gemini"><span class="ni">✨</span><span>Gemini</span></button>
     <button class="nav-item active" data-action="goTab" data-tab="overview">
       <svg class="svg-ico" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
       <span>Tổng quan</span>

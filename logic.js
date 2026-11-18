@@ -1,4 +1,4 @@
-/* logic.js — Quỹ Hưu Trí: logic thuần (không đụng DOM).
+/* logic.js — Quỹ Hưu Trí "Kiềng 3 Chân": logic thuần (không đụng DOM).
  * Chạy được cả trên trình duyệt (window.Retire) lẫn Node (module.exports) để test. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
@@ -25,7 +25,7 @@
 
   function emptyState() {
     return {
-      version: 2,
+      version: 3,
       goal: { amount: null, deadline: null },
       monthlyContribution: null,
       assets: [],
@@ -36,13 +36,14 @@
         mask: false,
         aiProvider: 'gemini',
         geminiApiKey: '',
-        openaiApiKey: ''
+        openaiApiKey: '',
+        dcbfTransit: true // Chiến lược dùng DCBF làm trạm trung chuyển gom 12,6tr mua 0,9 chỉ vàng cuối năm
       },
       lastSync: null
     };
   }
 
-  // Dữ liệu thực tế đã đồng bộ từ đoạn chat Gemini "Hưu trí" ngày 17/11/2026
+  // Dữ liệu chuẩn theo Biên bản Bàn giao 18/11/2026
   function initialPortfolioState() {
     const s = emptyState();
     s.goal = { amount: 50000000, deadline: '2027-10-06' };
@@ -56,8 +57,8 @@
         targetPct: 28
       }), {
         price: 13350000,
-        priceAsOf: '2026-11-17',
-        priceSource: 'Giá mua vào vàng nhẫn 9999 SJC/DOJI/BTMC chiều 17/11/2026 (133,5tr/lượng)',
+        priceAsOf: '2026-11-18',
+        priceSource: 'Giá mua vào vàng nhẫn 9999 sáng 18/11/2026 (133,5 triệu đ/lượng)',
         valueBasis: 'price'
       }),
       Object.assign(makeAsset({
@@ -67,9 +68,9 @@
         unit: 'CCQ',
         targetPct: 52
       }), {
-        price: 92132.85,
-        priceAsOf: '2026-11-17',
-        priceSource: 'NAV/CCQ DCDS Dragon Capital (kỳ 13/11 - công bố 15-16/11/2026)',
+        price: 91633.35,
+        priceAsOf: '2026-11-18',
+        priceSource: 'NAV/CCQ DCDS Dragon Capital phiên 17/11/2026 (chiết khấu, P/E ~10,4x)',
         valueBasis: 'price'
       }),
       Object.assign(makeAsset({
@@ -80,8 +81,8 @@
         targetPct: 20
       }), {
         price: 30925.57,
-        priceAsOf: '2026-11-17',
-        priceSource: 'NAV/CCQ DCBF Dragon Capital (cập nhật 14-15/11/2026)',
+        priceAsOf: '2026-11-18',
+        priceSource: 'NAV/CCQ DCBF Dragon Capital mới nhất (lãi kép ~7,5–8,5%/năm)',
         valueBasis: 'price'
       })
     ];
@@ -129,7 +130,7 @@
         amount: 200000,
         units: null,
         status: 'pending',
-        note: 'Mã lệnh 261117002955, chờ khớp 19/11/2026'
+        note: 'Mã lệnh 261117002955, đóng sổ trước 14:30 18/11, chờ khớp 19/11/2026'
       }
     ];
     s.snapshots = [
@@ -137,9 +138,9 @@
       { d: '2026-11-06', v: 5672000, c: 5672000 },
       { d: '2026-11-07', v: 6072000, c: 6072000 },
       { d: '2026-11-15', v: 7472000, c: 7472000 },
-      { d: '2026-11-17', v: 7607000, c: 7672000 }
+      { d: '2026-11-18', v: 7607000, c: 7672000 }
     ];
-    s.lastSync = '2026-11-17T20:25:00.000Z';
+    s.lastSync = '2026-11-18T09:30:00.000Z';
     return s;
   }
 
@@ -254,7 +255,6 @@
       asOf = asset.valueAsOf;
       if (priceOK && !unitsComplete) note = 'units-incomplete';
     } else if (priceOK && doneWithUnits.length > 0) {
-      // Định giá theo giá thị trường cho các lệnh đã có số lượng, các lệnh thiếu số lượng tạm giữ theo giá vốn
       value = Math.round(sum(doneWithUnits, (t) => t.units * asset.price) + sum(doneWithoutUnits, (t) => t.amount));
       source = 'price';
       asOf = asset.priceAsOf;
@@ -308,22 +308,37 @@
     };
   }
 
-  function planContribution(sm, contribution, step) {
+  // Điều phối dòng tiền hàng tháng:
+  // Nếu opts.dcbfTransit = true (Chiến lược Kiềng 3 Chân: DCBF vừa giữ đệm 10tr vừa gom ~12,6tr mua 0,9 chỉ vàng cuối năm),
+  // ưu tiên chia theo tỷ lệ ~55% DCDS / ~45% DCBF (ví dụ 3,75tr -> 2,00tr DCDS + 1,75tr DCBF; 4tr -> 2,15tr DCDS + 1,85tr DCBF).
+  function planContribution(sm, contribution, step, opts) {
+    if (typeof step === 'object' && step !== null) { opts = step; step = 1000; }
     step = step || 1000;
+    opts = opts || {};
     const C = Math.max(0, Math.round(contribution || 0));
     const list = sm.assets.filter((a) => a.targetPct > 0);
     if (!list.length || C <= 0) return { rows: [], total: C, ok: false };
     const tSum = sum(list, (a) => a.targetPct);
     const eff = (a) => a.value + a.pending;
     const T = sum(list, eff) + C;
+
+    // Kiểm tra xem có phải bộ 3 GOLD / DCDS / DCBF và đang bật chế độ Trạm trung chuyển DCBF không
+    const has3Pillar = opts.dcbfTransit && list.some((a) => a.code === 'DCDS') && list.some((a) => a.code === 'DCBF');
     const rows = list.map((a) => {
-      const desired = (T * a.targetPct) / tSum;
-      return { code: a.code, name: a.name, targetPct: a.targetPct, value: a.value, pending: a.pending,
-        desired, need: Math.max(0, desired - eff(a)) };
+      // Nếu bật dcbfTransit, mục tiêu tích lũy trên đường đi của DCBF là 20% + ~25,2% (12,6tr/50tr gom mua vàng) = 45,2%, GOLD tạm dừng ở mức hiện có
+      const effTargetPct = has3Pillar
+        ? (a.code === 'GOLD' ? 0 : a.code === 'DCDS' ? 53.75 : a.code === 'DCBF' ? 46.25 : a.targetPct)
+        : a.targetPct;
+      const desired = (T * effTargetPct) / (has3Pillar ? 100 : tSum);
+      return {
+        code: a.code, name: a.name, targetPct: a.targetPct, value: a.value, pending: a.pending,
+        desired, need: has3Pillar ? (effTargetPct > 0 ? effTargetPct : 0) : Math.max(0, desired - eff(a))
+      };
     });
     const needSum = sum(rows, (r) => r.need);
     const weights = needSum > 0 ? rows.map((r) => r.need / needSum) : rows.map((r) => r.targetPct / tSum);
-    const alloc = weights.map((w) => Math.floor((C * w) / step) * step);
+    const roundStep = has3Pillar ? 50000 : step;
+    const alloc = weights.map((w) => Math.floor((C * w) / roundStep) * roundStep);
     const rest = C - sum(alloc, (x) => x);
     let top = 0;
     weights.forEach((w, i) => { if (w > weights[top]) top = i; });
@@ -522,7 +537,7 @@
     '  ],',
     '  "prices": [',
     '    { "asset": "GOLD", "price": 13350000, "source": "giá mua vào 1 chỉ" },',
-    '    { "asset": "DCDS", "price": 92132.85, "source": "NAV/CCQ Dragon Capital" },',
+    '    { "asset": "DCDS", "price": 91633.35, "source": "NAV/CCQ Dragon Capital" },',
     '    { "asset": "DCBF", "price": 30925.57, "source": "NAV/CCQ Dragon Capital" }',
     '  ],',
     '  "goal": { "amount": 50000000, "deadline": "2027-10-06" },',
@@ -544,17 +559,13 @@
     const assets = state.assets || [];
     const list = assets.map((a) => '- ' + a.code + ' — ' + a.name + ' (đơn vị: ' + a.unit + ')').join('\n');
     if (kind === 'price') {
-      const body = assets.length
-        ? assets.map((a) => '- ' + a.code + ' — ' + a.name + ' (đơn vị: ' + a.unit + '): ' + (a.kind === 'gold'
-          ? 'lấy giá MUA VÀO vàng nhẫn/ép vỉ 24K 9999 hôm nay (VND cho 1 ' + a.unit + ').'
-          : 'lấy giá NAV/CCQ mới nhất của ' + a.name + ' (VND cho 1 ' + a.unit + ').')).join('\n')
-        : '- Từng tài sản trong danh mục của chúng ta (GOLD: giá MUA VÀO/chỉ; DCDS, DCBF: NAV/CCQ).';
       return [
-        'Hãy tra cứu NGAY BÂY GIỜ giá mới nhất hôm nay cho các tài sản trong quỹ hưu trí của tôi và trả về DUY NHẤT một khối JSON (đặt trong ```json), không giải thích thêm:',
-        body,
-        '',
-        'Mỗi mục ghi rõ nguồn và ngày lấy giá. Nếu không tra cứu được thì để price = null.',
-        'Schema: { "asOf": "YYYY-MM-DD", "prices": [ { "asset": "GOLD", "price": 0, "source": "nguồn + ngày" }, { "asset": "DCDS", "price": 0, "source": "NAV" }, { "asset": "DCBF", "price": 0, "source": "NAV" } ] }'
+        'Thực hiện Task A (Rà soát thị trường 9:00 sáng cho danh mục Kiềng 3 Chân của tôi):',
+        '1. Tra cứu giá MUA VÀO – BÁN RA mới nhất hôm nay của Vàng miếng SJC và Vàng nhẫn 9999 / Thẻ vàng 24K (SJC, PNJ, DOJI, BTMC, Huy Thanh) và tính biên độ chênh lệch mua–bán (Spread).',
+        '2. Tra cứu giá NAV/CCQ mới nhất của quỹ DCDS và DCBF (Dragon Capital).',
+        '3. Đưa ra nhận định ngắn gọn theo quy tắc Kiềng 3 Chân (Vàng có săn được thẻ 1 phân 0đ tiền công không? DCDS có đang ở vùng chiết khấu để gom thêm không?).',
+        '4. Cuối câu trả lời, xuất DUY NHẤT một khối ```json cập nhật giá để tôi dán vào App:',
+        '{ "asOf": "' + (today || 'YYYY-MM-DD') + '", "prices": [ { "asset": "GOLD", "price": 0, "source": "Giá mua vào vàng nhẫn 9999/chỉ + Spread" }, { "asset": "DCDS", "price": 0, "source": "NAV/CCQ DCDS" }, { "asset": "DCBF", "price": 0, "source": "NAV/CCQ DCBF" } ] }'
       ].join('\n');
     }
     if (kind === 'tx') {
