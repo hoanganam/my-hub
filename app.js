@@ -98,7 +98,7 @@
           '<div class="sig-reason">' + sg.reason + '</div></div>';
       }).join('');
       briefHTML = '<div class="card brief-card">' +
-        '<div class="brief-head"><div class="brief-title">' + ico('bell', 'sm') + ' <span>Hôm nay Mua gì · Ngưng gì?</span></div>' +
+        '<div class="brief-head"><div class="brief-title">' + ico('bell', 'sm') + ' <span>Thông Báo</span></div>' +
         '<span class="brief-date">' + esc(S.advisorBriefing.updatedAt || '') + '</span></div>' +
         (S.advisorBriefing.headline ? '<div class="brief-summary">' + esc(S.advisorBriefing.headline) + '</div>' : '') +
         '<div class="sig-list">' + sigs + '</div></div>';
