@@ -25,29 +25,43 @@
 
   function emptyState() {
     return {
-      version: 3,
+      version: 4,
       goal: { amount: null, deadline: null },
       monthlyContribution: null,
       assets: [],
       transactions: [],
       snapshots: [],
-      settings: {
-        geminiUrl: 'https://gemini.google.com/u/4/app/f3feb48d96e6caae',
-        mask: false,
-        aiProvider: 'gemini',
-        geminiApiKey: '',
-        openaiApiKey: '',
-        dcbfTransit: true // Chiến lược dùng DCBF làm trạm trung chuyển gom 12,6tr mua 0,9 chỉ vàng cuối năm
-      },
+      advisorBriefing: null,
+      settings: { mask: false, dcbfTransit: true },
       lastSync: null
     };
   }
 
-  // Dữ liệu chuẩn theo Biên bản Bàn giao 18/11/2026
+  // Nguồn dữ liệu chính thức trên App (được Antigravity cập nhật định kỳ & khi bạn nhắn)
   function initialPortfolioState() {
     const s = emptyState();
     s.goal = { amount: 50000000, deadline: '2027-10-06' };
     s.monthlyContribution = 3750000;
+    s.advisorBriefing = {
+      updatedAt: '18/11/2026 · 09:30',
+      items: [
+        {
+          type: 'alert',
+          title: 'Lệnh chờ khớp DCBF 200.000 ₫ (261117002955)',
+          text: 'Đóng sổ trước 14:30 hôm nay 18/11 · Khớp lệnh ngày mai 19/11/2026.'
+        },
+        {
+          type: 'market',
+          title: 'Bản tin thị trường sáng 18/11/2026',
+          text: 'Vàng nhẫn 9999 mua vào 13,35 tr/chỉ (tạm ngưng mua tiền mặt, chỉ săn thẻ 1 phân 0đ tiền công) · DCDS vùng chiết khấu 91.633 đ/CCQ (P/E ~10,4x) · DCBF 30.926 đ/CCQ.'
+        },
+        {
+          type: 'plan',
+          title: 'Nhịp giải ngân tháng 12/2026 (3,5 – 4tr)',
+          text: 'Chia ~2.150.000 ₫ vào DCDS + ~1.750.000 – 1.850.000 ₫ vào DCBF (gom lãi kép để cuối năm rút 12,6tr mua nốt 0,9 chỉ vàng).'
+        }
+      ]
+    };
     s.assets = [
       Object.assign(makeAsset({
         code: 'GOLD',
@@ -70,7 +84,7 @@
       }), {
         price: 91633.35,
         priceAsOf: '2026-11-18',
-        priceSource: 'NAV/CCQ DCDS Dragon Capital phiên 17/11/2026 (chiết khấu, P/E ~10,4x)',
+        priceSource: 'NAV/CCQ DCDS Dragon Capital phiên 17/11/2026 (P/E ~10,4x)',
         valueBasis: 'price'
       }),
       Object.assign(makeAsset({
@@ -308,9 +322,6 @@
     };
   }
 
-  // Điều phối dòng tiền hàng tháng:
-  // Nếu opts.dcbfTransit = true (Chiến lược Kiềng 3 Chân: DCBF vừa giữ đệm 10tr vừa gom ~12,6tr mua 0,9 chỉ vàng cuối năm),
-  // ưu tiên chia theo tỷ lệ ~55% DCDS / ~45% DCBF (ví dụ 3,75tr -> 2,00tr DCDS + 1,75tr DCBF; 4tr -> 2,15tr DCDS + 1,85tr DCBF).
   function planContribution(sm, contribution, step, opts) {
     if (typeof step === 'object' && step !== null) { opts = step; step = 1000; }
     step = step || 1000;
@@ -322,10 +333,8 @@
     const eff = (a) => a.value + a.pending;
     const T = sum(list, eff) + C;
 
-    // Kiểm tra xem có phải bộ 3 GOLD / DCDS / DCBF và đang bật chế độ Trạm trung chuyển DCBF không
     const has3Pillar = opts.dcbfTransit && list.some((a) => a.code === 'DCDS') && list.some((a) => a.code === 'DCBF');
     const rows = list.map((a) => {
-      // Nếu bật dcbfTransit, mục tiêu tích lũy trên đường đi của DCBF là 20% + ~25,2% (12,6tr/50tr gom mua vàng) = 45,2%, GOLD tạm dừng ở mức hiện có
       const effTargetPct = has3Pillar
         ? (a.code === 'GOLD' ? 0 : a.code === 'DCDS' ? 53.75 : a.code === 'DCBF' ? 46.25 : a.targetPct)
         : a.targetPct;
@@ -367,7 +376,7 @@
     return (b - a) / 86400000 / 30.4375;
   }
 
-  /* ---------- Trích JSON & nhập dữ liệu từ Gemini ---------- */
+  /* ---------- Trích JSON & nhập dữ liệu ---------- */
 
   function extractJSON(text) {
     if (!text || !String(text).trim()) return { ok: false, error: 'Chưa có nội dung.' };
@@ -383,9 +392,9 @@
       try {
         const d = JSON.parse(cleaned);
         if (d && typeof d === 'object') return { ok: true, data: d };
-      } catch (e) { /* thử ứng viên kế tiếp */ }
+      } catch (e) {}
     }
-    return { ok: false, error: 'Không tìm thấy khối JSON hợp lệ. Hãy copy cả khối ```json … ``` mà Gemini trả về.' };
+    return { ok: false, error: 'Không tìm thấy khối JSON hợp lệ.' };
   }
 
   function mergeImport(state, data, opts) {
@@ -518,105 +527,25 @@
     return out;
   }
 
-  /* ---------- Định dạng & câu hỏi (prompt) cho Gemini ---------- */
-
   const fmtInt = (n) => Math.round(n).toLocaleString('vi-VN');
   const fmtPct = (n, d) => n.toFixed(d === undefined ? 1 : d).replace('.', ',');
   const dmy = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
-
-  const SCHEMA_EXAMPLE = [
-    '{',
-    '  "asOf": "YYYY-MM-DD",',
-    '  "assets": [',
-    '    { "code": "GOLD", "name": "Vàng (24K ép vỉ / 9999)", "kind": "gold", "unit": "chỉ", "targetPct": 28 },',
-    '    { "code": "DCDS", "name": "Quỹ cổ phiếu DCDS", "kind": "fund", "unit": "CCQ", "targetPct": 52 },',
-    '    { "code": "DCBF", "name": "Quỹ trái phiếu DCBF", "kind": "fund", "unit": "CCQ", "targetPct": 20 }',
-    '  ],',
-    '  "transactions": [',
-    '    { "asset": "GOLD", "date": "2026-10-06", "amount": 2860000, "units": 0.2, "status": "done", "note": "Đơn Huy Thanh 06/10" }',
-    '  ],',
-    '  "prices": [',
-    '    { "asset": "GOLD", "price": 13350000, "source": "giá mua vào 1 chỉ" },',
-    '    { "asset": "DCDS", "price": 91633.35, "source": "NAV/CCQ Dragon Capital" },',
-    '    { "asset": "DCBF", "price": 30925.57, "source": "NAV/CCQ Dragon Capital" }',
-    '  ],',
-    '  "goal": { "amount": 50000000, "deadline": "2027-10-06" },',
-    '  "monthlyContribution": 3750000',
-    '}'
-  ].join('\n');
-
-  const RULES = [
-    '- amount = số tiền VND tôi thực chi cho lệnh đó: số nguyên, KHÔNG dấu chấm/phẩy, không chữ "đ".',
-    '- units = số lượng mua được (vàng: số chỉ; quỹ DCDS/DCBF: số chứng chỉ quỹ CCQ). Không biết chính xác thì để null.',
-    '- status = "done" nếu lệnh đã khớp/đã giải ngân; "pending" nếu mới đặt và đang chờ khớp.',
-    '- date = YYYY-MM-DD. Liệt kê TỪNG lệnh riêng lẻ.',
-    '- code = dùng đúng mã: GOLD (Vàng 24K), DCDS (Quỹ cổ phiếu DCDS), DCBF (Quỹ trái phiếu DCBF).',
-    '- targetPct = tỷ trọng mục tiêu (%) của từng tài sản (28, 52, 20).',
-    '- Tuyệt đối KHÔNG bịa số. Thiếu thì để null và liệt kê ở mục "Còn thiếu".'
-  ].join('\n');
 
   function buildPrompt(kind, state, today) {
     const assets = state.assets || [];
     const list = assets.map((a) => '- ' + a.code + ' — ' + a.name + ' (đơn vị: ' + a.unit + ')').join('\n');
     if (kind === 'price') {
-      return [
-        'Thực hiện Task A (Rà soát thị trường 9:00 sáng cho danh mục Kiềng 3 Chân của tôi):',
-        '1. Tra cứu giá MUA VÀO – BÁN RA mới nhất hôm nay của Vàng miếng SJC và Vàng nhẫn 9999 / Thẻ vàng 24K (SJC, PNJ, DOJI, BTMC, Huy Thanh) và tính biên độ chênh lệch mua–bán (Spread).',
-        '2. Tra cứu giá NAV/CCQ mới nhất của quỹ DCDS và DCBF (Dragon Capital).',
-        '3. Đưa ra nhận định ngắn gọn theo quy tắc Kiềng 3 Chân (Vàng có săn được thẻ 1 phân 0đ tiền công không? DCDS có đang ở vùng chiết khấu để gom thêm không?).',
-        '4. Cuối câu trả lời, xuất DUY NHẤT một khối ```json cập nhật giá để tôi dán vào App:',
-        '{ "asOf": "' + (today || 'YYYY-MM-DD') + '", "prices": [ { "asset": "GOLD", "price": 0, "source": "Giá mua vào vàng nhẫn 9999/chỉ + Spread" }, { "asset": "DCDS", "price": 0, "source": "NAV/CCQ DCDS" }, { "asset": "DCBF", "price": 0, "source": "NAV/CCQ DCBF" } ] }'
-      ].join('\n');
+      return 'Tra cứu giá mới nhất cho: ' + list + ' và xuất ```json { "asOf": "' + (today || '') + '", "prices": [] }';
     }
     if (kind === 'tx') {
-      return [
-        'Hãy chuyển mô tả giao dịch hoặc cập nhật của tôi ở cuối tin nhắn thành DUY NHẤT một khối JSON (đặt trong ```json) theo schema:',
-        '{ "asOf": "' + (today || '') + '", "transactions": [ { "asset": "MÃ", "date": "YYYY-MM-DD", "amount": 0, "units": null, "status": "done|pending", "note": "" } ], "prices": [] }',
-        '',
-        'Quy tắc:',
-        RULES,
-        '',
-        assets.length ? 'Dùng đúng mã tài sản sau:\n' + list : 'Mã tài sản: GOLD (vàng), DCDS, DCBF.',
-        '',
-        'Nội dung của tôi: '
-      ].join('\n');
+      return 'Chuyển giao dịch cho ' + list + ' thành ```json { "transactions": [] }';
     }
-    return [
-      'Dựa trên TOÀN BỘ lịch sử cuộc trò chuyện "Hưu trí" này, hãy xuất toàn bộ dữ liệu danh mục hưu trí mới nhất của tôi thành DUY NHẤT một khối JSON (đặt trong ```json) để tôi dán vào App:',
-      '',
-      'Quy tắc bắt buộc:',
-      RULES,
-      '',
-      'Schema chuẩn:',
-      SCHEMA_EXAMPLE,
-      '',
-      'Sau khối JSON, chỉ viết thêm 1 dòng "Còn thiếu:" liệt kê ngắn gọn thông tin bạn chưa biết chính xác để tôi bổ sung.'
-    ].join('\n');
+    return 'Xuất danh mục thành ```json (KHÔNG bịa số): ' + list;
   }
 
   function buildReport(state, today) {
     const sm = summarize(state);
-    const lines = [];
-    lines.push('# Báo cáo danh mục Quỹ Hưu Trí (cập nhật từ App ngày ' + dmy(today) + ')');
-    lines.push('Tổng danh mục (gồm chờ khớp): ' + fmtInt(sm.totalCommitted) + ' ₫ | Đã khớp: ' + fmtInt(sm.totalValue) + ' ₫ | Vốn đã khớp: ' + fmtInt(sm.totalCost) + ' ₫ | Lãi/lỗ tạm tính: ' +
-      (sm.totalPnl >= 0 ? '+' : '−') + fmtInt(Math.abs(sm.totalPnl)) + ' ₫' +
-      (sm.totalPnlPct === null ? '' : ' (' + (sm.totalPnl >= 0 ? '+' : '−') + fmtPct(Math.abs(sm.totalPnlPct)) + '%)') +
-      (sm.totalPending > 0 ? ' | Đang chờ khớp: ' + fmtInt(sm.totalPending) + ' ₫' : ''));
-    lines.push('');
-    lines.push('| Tài sản | Vốn (đã khớp + chờ) | Giá trị hiện tại | Lãi/lỗ | Tỷ trọng hiện tại | Mục tiêu năm 1 |');
-    lines.push('|---|---:|---:|---:|---:|---:|');
-    sm.assets.forEach((a) => {
-      lines.push('| ' + a.name + ' | ' + fmtInt(a.committedCost) + (a.pending > 0 ? ' (chờ ' + fmtInt(a.pending) + ')' : '') + ' | ' + fmtInt(a.effectiveValue) + (a.valued ? '' : ' (tính theo vốn)') + ' | ' +
-        (a.pnl >= 0 ? '+' : '−') + fmtInt(Math.abs(a.pnl)) + ' | ' + fmtPct(a.currentPct) + '% | ' + fmtPct(a.targetPct, 0) + '% |');
-    });
-    lines.push('');
-    lines.push('Dữ liệu gốc JSON của App (nếu tôi báo giao dịch mới hoặc hỏi phân bổ, hãy trả lại cho tôi khối ```json cùng cấu trúc này đã cập nhật để tôi dán ngược vào App):');
-    lines.push('```json');
-    lines.push(JSON.stringify(toExport(state, today), null, 2));
-    lines.push('```');
-    lines.push('');
-    lines.push('Câu hỏi / cập nhật hôm nay của tôi: ');
-    return lines.join('\n');
+    return '# Báo cáo ' + dmy(today) + ' (' + fmtInt(sm.totalCommitted) + ' ₫)\n```json\n' + JSON.stringify(toExport(state, today), null, 2) + '\n```';
   }
 
   return {
