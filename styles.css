@@ -105,9 +105,9 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -.5px; color: var(--text
 }
 .hbadge.gold { background: #fef3c7; color: #92400e; }
 
-/* Advisor Briefing Card */
+/* Advisor Action Signal Card (Mua / Không mua rõ ràng) */
 .brief-card {
-  background: linear-gradient(180deg, #ffffff 0%, #f8faf9 100%);
+  background: #ffffff;
   border-color: #cbd5e1;
 }
 .brief-head {
@@ -116,23 +116,39 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -.5px; color: var(--text
 }
 .brief-title {
   display: flex; align-items: center; gap: 7px;
-  font-size: 15px; font-weight: 800; color: var(--text);
+  font-size: 16px; font-weight: 800; color: var(--text);
 }
 .brief-date {
-  font-size: 11px; font-weight: 700; color: var(--pos);
-  background: var(--pos-bg); padding: 3px 9px; border-radius: 99px;
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  background: var(--bg2); padding: 4px 10px; border-radius: 99px;
 }
-.brief-list { display: flex; flex-direction: column; gap: 8px; }
-.brief-item {
-  display: flex; align-items: flex-start; gap: 9px;
-  padding: 10px 12px; border-radius: 14px;
+.brief-summary {
+  padding: 11px 13px; border-radius: 14px;
+  background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46;
+  font-size: 13px; font-weight: 700; margin-bottom: 10px;
+}
+.sig-list { display: flex; flex-direction: column; gap: 8px; }
+.sig-row {
+  padding: 12px 13px; border-radius: 16px;
   background: var(--card2); border: 1px solid var(--line);
-  font-size: 13px; color: var(--text);
 }
-.brief-item.alert {
-  background: #fffbeb; border-color: #fde68a; color: #92400e;
+.sig-row.buy { background: #f0fdf4; border-color: #86efac; }
+.sig-row.hold { background: #eff6ff; border-color: #bfdbfe; }
+.sig-row.stop { background: #fff1f2; border-color: #fecdd3; }
+.sig-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 5px;
 }
-.brief-item b { font-weight: 800; }
+.sig-name { font-size: 15px; font-weight: 800; color: var(--text); }
+.sig-badge {
+  font-size: 11px; font-weight: 800; letter-spacing: .3px;
+  padding: 4px 10px; border-radius: 99px; white-space: nowrap;
+}
+.sig-badge.buy { background: #059669; color: #ffffff; }
+.sig-badge.hold { background: #2563eb; color: #ffffff; }
+.sig-badge.stop { background: #e11d48; color: #ffffff; }
+.sig-reason { font-size: 13px; color: var(--muted); font-weight: 600; }
+.sig-reason b { color: var(--text); font-weight: 800; }
 
 /* Goal Progress & Milestones */
 .goal-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
@@ -200,9 +216,9 @@ body.mask .money { filter: blur(8px); user-select: none; }
   display: inline-block; font-size: 11px; font-weight: 700;
   padding: 3px 9px; border-radius: 99px;
 }
-.pill-tag.pause { background: var(--gold-bg); color: #92400e; }
-.pill-tag.buy { background: var(--blue-bg); color: #1d4ed8; }
-.pill-tag.ok { background: var(--pos-bg); color: #065f46; }
+.pill-tag.pause { background: var(--neg-bg); color: var(--neg); }
+.pill-tag.buy { background: var(--pos-bg); color: #065f46; }
+.pill-tag.ok { background: var(--blue-bg); color: #1d4ed8; }
 
 details { margin-top: 8px; }
 summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--muted); padding: 4px 0; }

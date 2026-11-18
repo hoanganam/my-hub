@@ -1,4 +1,4 @@
-/* app.js — Quỹ Hưu Trí "Kiềng 3 Chân" (Trang Tổng Quan Duy Nhất · Cập nhật tự động từ Antigravity). */
+/* app.js — Quỹ Hưu Trí "Kiềng 3 Chân" (Trang Tổng Quan Duy Nhất · Tín hiệu MUA / KHÔNG MUA rõ ràng). */
 (function () {
   'use strict';
   const R = window.Retire;
@@ -9,8 +9,7 @@
     check: '<polyline points="20 6 9 17 4 12"/>',
     clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
     target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
-    bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
-    sparkle: '<path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3z"/>'
+    bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'
   };
   const ico = (name, cls) => '<svg class="svg-ico ' + (cls || '') + '" viewBox="0 0 24 24">' + (PATHS[name] || PATHS.check) + '</svg>';
 
@@ -34,7 +33,6 @@
     return COLORS[0];
   };
 
-  // Luôn đọc dữ liệu mới nhất được Antigravity đẩy lên (chỉ nhớ trạng thái ẩn/hiện số tiền)
   const S = R.initialPortfolioState();
   try { S.settings.mask = localStorage.getItem(MASK_KEY) === '1'; } catch (e) {}
 
@@ -89,28 +87,31 @@
       ? 'Chỉ còn <b class="money">' + fmt(nextStep.amt - total) + ' ₫</b> nữa là cán mốc <b>' + shortVnd(nextStep.amt) + '</b>!'
       : 'Bạn đã chinh phục cột mốc ' + shortVnd(goalAmt) + '!';
 
-    // Thẻ Bản tin Cố vấn & Nhắc việc (do Antigravity cập nhật)
+    // Bảng Tín hiệu Cố vấn: MUA / KHÔNG MUA rõ từng kênh
     let briefHTML = '';
-    if (S.advisorBriefing && Array.isArray(S.advisorBriefing.items)) {
-      const bItems = S.advisorBriefing.items.map((it) =>
-        '<div class="brief-item ' + (it.type === 'alert' ? 'alert' : '') + '">' +
-        '<div style="margin-top:1px">' + ico(it.type === 'alert' ? 'clock' : 'sparkle', 'sm') + '</div>' +
-        '<div><b>' + esc(it.title) + '</b><div style="margin-top:2px;opacity:.9">' + esc(it.text) + '</div></div></div>'
-      ).join('');
+    if (S.advisorBriefing && Array.isArray(S.advisorBriefing.signals)) {
+      const sigs = S.advisorBriefing.signals.map((sg) => {
+        const cls = sg.action === 'buy' ? 'buy' : (sg.action === 'hold' ? 'hold' : 'stop');
+        return '<div class="sig-row ' + cls + '">' +
+          '<div class="sig-top"><span class="sig-name">' + esc(sg.name) + '</span>' +
+          '<span class="sig-badge ' + cls + '">' + esc(sg.badge) + '</span></div>' +
+          '<div class="sig-reason">' + sg.reason + '</div></div>';
+      }).join('');
       briefHTML = '<div class="card brief-card">' +
-        '<div class="brief-head"><div class="brief-title">' + ico('bell', 'sm') + ' <span>Bản tin Cố vấn</span></div>' +
+        '<div class="brief-head"><div class="brief-title">' + ico('bell', 'sm') + ' <span>Hôm nay Mua gì · Ngưng gì?</span></div>' +
         '<span class="brief-date">' + esc(S.advisorBriefing.updatedAt || '') + '</span></div>' +
-        '<div class="brief-list">' + bItems + '</div></div>';
+        (S.advisorBriefing.headline ? '<div class="brief-summary">' + esc(S.advisorBriefing.headline) + '</div>' : '') +
+        '<div class="sig-list">' + sigs + '</div></div>';
     }
 
     const rows = sm.assets.map((a) => {
       const c = colorOf(a.code);
       const d = a.driftPct;
       const tag = d > 1
-        ? '<span class="pill-tag pause">Đủ rồi · Tạm ngưng</span>'
+        ? '<span class="pill-tag pause">KHÔNG MUA THÊM</span>'
         : d < -1
-          ? '<span class="pill-tag buy">Ưu tiên gom thêm</span>'
-          : '<span class="pill-tag ok">Đúng chuẩn</span>';
+          ? '<span class="pill-tag buy">NÊN MUA GOM</span>'
+          : '<span class="pill-tag ok">ĐÚNG TỶ TRỌNG</span>';
       const priceStr = a.price ? ('Giá/NAV: ' + fmt(a.price) + ' ₫/' + a.unit) : '';
       const txs = S.transactions.filter((t) => t.assetCode === a.code).sort((x, y) => (x.date < y.date ? 1 : -1));
       const txList = txs.map((t) =>

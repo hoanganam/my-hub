@@ -25,7 +25,7 @@
 
   function emptyState() {
     return {
-      version: 4,
+      version: 5,
       goal: { amount: null, deadline: null },
       monthlyContribution: null,
       assets: [],
@@ -43,22 +43,29 @@
     s.goal = { amount: 50000000, deadline: '2027-10-06' };
     s.monthlyContribution = 3750000;
     s.advisorBriefing = {
-      updatedAt: '18/11/2026 · 09:30',
-      items: [
+      updatedAt: '18/11/2026',
+      headline: 'Hôm nay: Chờ lệnh DCBF 200k khớp ngày mai (19/11). Có tiền mới thì MUA DCDS + DCBF, tuyệt đối KHÔNG mua thêm Vàng.',
+      signals: [
         {
-          type: 'alert',
-          title: 'Lệnh chờ khớp DCBF 200.000 ₫ (261117002955)',
-          text: 'Đóng sổ trước 14:30 hôm nay 18/11 · Khớp lệnh ngày mai 19/11/2026.'
+          code: 'DCDS',
+          name: 'Quỹ cổ phiếu DCDS',
+          action: 'buy',
+          badge: 'NÊN MUA GOM',
+          reason: 'Giá <b>91.633 ₫/CCQ</b> đang giảm chiết khấu (P/E ~10,4x) và mới chiếm <b>5,2%</b> (mục tiêu 52%). Ưu tiên rót <b>~2.150.000 ₫/tháng</b>.'
         },
         {
-          type: 'market',
-          title: 'Bản tin thị trường sáng 18/11/2026',
-          text: 'Vàng nhẫn 9999 mua vào 13,35 tr/chỉ (tạm ngưng mua tiền mặt, chỉ săn thẻ 1 phân 0đ tiền công) · DCDS vùng chiết khấu 91.633 đ/CCQ (P/E ~10,4x) · DCBF 30.926 đ/CCQ.'
+          code: 'DCBF',
+          name: 'Quỹ trái phiếu DCBF',
+          action: 'hold',
+          badge: 'NÊN MUA ĐỀU · CHỜ KHỚP 200K',
+          reason: 'Giá <b>30.926 ₫/CCQ</b>. Lệnh <b>200.000 ₫</b> (261117002955) đóng sổ 14:30 hôm nay, khớp ngày mai <b>19/11</b>. Tháng tới góp <b>~1.750.000 – 1.850.000 ₫</b>.'
         },
         {
-          type: 'plan',
-          title: 'Nhịp giải ngân tháng 12/2026 (3,5 – 4tr)',
-          text: 'Chia ~2.150.000 ₫ vào DCDS + ~1.750.000 – 1.850.000 ₫ vào DCBF (gom lãi kép để cuối năm rút 12,6tr mua nốt 0,9 chỉ vàng).'
+          code: 'GOLD',
+          name: 'Vàng 24K / Nhẫn 9999',
+          action: 'stop',
+          badge: 'KHÔNG MUA THÊM',
+          reason: 'Giá mua vào <b>13.350.000 ₫/chỉ</b>. Đã chiếm tới <b>92,2%</b> vốn (vượt xa mục tiêu 28%) nên <b>ngưng mua bằng tiền mặt</b> (chỉ mua nếu săn được thẻ 0,1 chỉ 0đ tiền công).'
         }
       ]
     };
@@ -154,7 +161,7 @@
       { d: '2026-11-15', v: 7472000, c: 7472000 },
       { d: '2026-11-18', v: 7607000, c: 7672000 }
     ];
-    s.lastSync = '2026-11-18T09:30:00.000Z';
+    s.lastSync = '2026-11-18T10:45:00.000Z';
     return s;
   }
 
@@ -375,8 +382,6 @@
     const a = new Date(fromISO + 'T00:00:00'), b = new Date(toISO + 'T00:00:00');
     return (b - a) / 86400000 / 30.4375;
   }
-
-  /* ---------- Trích JSON & nhập dữ liệu ---------- */
 
   function extractJSON(text) {
     if (!text || !String(text).trim()) return { ok: false, error: 'Chưa có nội dung.' };
