@@ -1,0 +1,29 @@
+name: Daily 9AM Briefing Update
+
+on:
+  schedule:
+    # 02:00 UTC = 09:00 sáng giờ Việt Nam (GMT+7) hàng ngày
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  update-briefing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run daily 9AM briefing updater
+        run: node scripts/auto-update.js
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "Antigravity Advisor Bot"
+          git config user.email "actions@github.com"
+          git add logic.js sw.js
+          git diff --staged --quiet || (git commit -m "Auto-update daily 9AM briefing ($(date +'%Y-%m-%d'))" && git push)

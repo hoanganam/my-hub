@@ -25,7 +25,7 @@
 
   function emptyState() {
     return {
-      version: 5,
+      version: 6,
       goal: { amount: null, deadline: null },
       monthlyContribution: null,
       assets: [],
@@ -43,29 +43,29 @@
     s.goal = { amount: 50000000, deadline: '2027-10-06' };
     s.monthlyContribution = 3750000;
     s.advisorBriefing = {
-      updatedAt: '18/11/2026',
-      headline: 'Hôm nay: Chờ lệnh DCBF 200k khớp ngày mai (19/11). Có tiền mới thì MUA DCDS + DCBF, tuyệt đối KHÔNG mua thêm Vàng.',
+      updatedAt: '22/11/2026',
+      headline: 'Hôm nay (22/11): NAV DCDS lùi sâu về ~90.097 ₫/CCQ (vùng gom rất đẹp). Lệnh DCBF 200k đã qua ngày khớp 19/11 — bạn mở DragonX xem số CCQ khớp để mình chốt sổ nhé!',
       signals: [
         {
           code: 'DCDS',
           name: 'Quỹ cổ phiếu DCDS',
           action: 'buy',
-          badge: 'NÊN MUA GOM',
-          reason: 'Giá <b>91.633 ₫/CCQ</b> đang giảm chiết khấu (P/E ~10,4x) và mới chiếm <b>5,2%</b> (mục tiêu 52%). Ưu tiên rót <b>~2.150.000 ₫/tháng</b>.'
+          badge: 'NÊN MUA GOM MẠNH',
+          reason: 'NAV điều chỉnh giảm về <b>90.097 ₫/CCQ</b> (rẻ hơn mức 91.633 ₫ tuần trước) và mới chiếm <b>5,2%</b> (mục tiêu 52%). Kỳ lương tháng 12 ưu tiên giải ngân <b>~2.150.000 ₫</b>.'
         },
         {
           code: 'DCBF',
           name: 'Quỹ trái phiếu DCBF',
           action: 'hold',
-          badge: 'NÊN MUA ĐỀU · CHỜ KHỚP 200K',
-          reason: 'Giá <b>30.926 ₫/CCQ</b>. Lệnh <b>200.000 ₫</b> (261117002955) đóng sổ 14:30 hôm nay, khớp ngày mai <b>19/11</b>. Tháng tới góp <b>~1.750.000 – 1.850.000 ₫</b>.'
+          badge: 'ĐÃ QUA NGÀY KHỚP 19/11 · MUA ĐỀU',
+          reason: 'NAV tăng lên <b>30.983 ₫/CCQ</b> (+6,8% từ đầu năm). Lệnh <b>200.000 ₫</b> (261117002955) đã qua phiên khớp <b>19/11</b> (~6,46 CCQ) — hãy nhắn mình số CCQ thực nhận. Tháng 12 góp <b>~1.750.000 – 1.850.000 ₫</b>.'
         },
         {
           code: 'GOLD',
           name: 'Vàng 24K / Nhẫn 9999',
           action: 'stop',
           badge: 'KHÔNG MUA THÊM',
-          reason: 'Giá mua vào <b>13.350.000 ₫/chỉ</b>. Đã chiếm tới <b>92,2%</b> vốn (vượt xa mục tiêu 28%) nên <b>ngưng mua bằng tiền mặt</b> (chỉ mua nếu săn được thẻ 0,1 chỉ 0đ tiền công).'
+          reason: 'Giá nhẫn 9999 mua vào <b>12.830.000 ₫/chỉ</b> · bán ra <b>13.330.000 ₫/chỉ</b> (chênh lệch mua–bán rộng <b>500.000 ₫/chỉ</b>) và Vàng đang chiếm <b>92,2%</b> vốn. Ngưng mua tiền mặt!'
         }
       ]
     };
@@ -77,9 +77,9 @@
         unit: 'chỉ',
         targetPct: 28
       }), {
-        price: 13350000,
-        priceAsOf: '2026-11-18',
-        priceSource: 'Giá mua vào vàng nhẫn 9999 sáng 18/11/2026 (133,5 triệu đ/lượng)',
+        price: 12830000,
+        priceAsOf: '2026-11-22',
+        priceSource: 'Giá mua vào vàng nhẫn 9999 BTMC/DOJI ngày 22/11/2026 (bán ra 13,33tr - Spread 500k/chỉ)',
         valueBasis: 'price'
       }),
       Object.assign(makeAsset({
@@ -89,9 +89,9 @@
         unit: 'CCQ',
         targetPct: 52
       }), {
-        price: 91633.35,
-        priceAsOf: '2026-11-18',
-        priceSource: 'NAV/CCQ DCDS Dragon Capital phiên 17/11/2026 (P/E ~10,4x)',
+        price: 90097.09,
+        priceAsOf: '2026-11-22',
+        priceSource: 'NAV/CCQ DCDS Dragon Capital cập nhật 22/11/2026 (vùng chiết khấu tốt)',
         valueBasis: 'price'
       }),
       Object.assign(makeAsset({
@@ -101,9 +101,9 @@
         unit: 'CCQ',
         targetPct: 20
       }), {
-        price: 30925.57,
-        priceAsOf: '2026-11-18',
-        priceSource: 'NAV/CCQ DCBF Dragon Capital mới nhất (lãi kép ~7,5–8,5%/năm)',
+        price: 30982.76,
+        priceAsOf: '2026-11-22',
+        priceSource: 'NAV/CCQ DCBF Dragon Capital cập nhật 22/11/2026 (+6,81% YTD)',
         valueBasis: 'price'
       })
     ];
@@ -151,7 +151,7 @@
         amount: 200000,
         units: null,
         status: 'pending',
-        note: 'Mã lệnh 261117002955, đóng sổ trước 14:30 18/11, chờ khớp 19/11/2026'
+        note: 'Mã lệnh 261117002955 (phiên khớp 19/11/2026 — chờ nhập số CCQ thực nhận)'
       }
     ];
     s.snapshots = [
@@ -159,9 +159,10 @@
       { d: '2026-11-06', v: 5672000, c: 5672000 },
       { d: '2026-11-07', v: 6072000, c: 6072000 },
       { d: '2026-11-15', v: 7472000, c: 7472000 },
-      { d: '2026-11-18', v: 7607000, c: 7672000 }
+      { d: '2026-11-18', v: 7607000, c: 7672000 },
+      { d: '2026-11-22', v: 7555000, c: 7672000 }
     ];
-    s.lastSync = '2026-11-18T10:45:00.000Z';
+    s.lastSync = '2026-11-22T21:22:00.000Z';
     return s;
   }
 
