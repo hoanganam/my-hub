@@ -43,8 +43,8 @@
     s.goal = { amount: 50000000, deadline: '2027-10-06' };
     s.monthlyContribution = 3750000;
     s.advisorBriefing = {
-      updatedAt: '24/11/2026',
-      headline: 'Hôm nay (24/11): NAV DCDS lùi sâu về ~90.097 ₫/CCQ (vùng gom rất đẹp). Lệnh DCBF 200k đã qua ngày khớp 19/11 — bạn mở DragonX xem số CCQ khớp để mình chốt sổ nhé!',
+      updatedAt: '25/11/2026',
+      headline: 'Hôm nay (25/11): NAV DCDS lùi sâu về ~90.097 ₫/CCQ (vùng gom rất đẹp). Lệnh DCBF 200k đã qua ngày khớp 19/11 — bạn mở DragonX xem số CCQ khớp để mình chốt sổ nhé!',
       signals: [
         {
           code: 'DCDS',
@@ -78,7 +78,7 @@
         targetPct: 28
       }), {
         price: 12830000,
-        priceAsOf: '2026-11-24',
+        priceAsOf: '2026-11-25',
         priceSource: 'Giá mua vào vàng nhẫn 9999 BTMC/DOJI ngày 22/11/2026 (bán ra 13,33tr - Spread 500k/chỉ)',
         valueBasis: 'price'
       }),
@@ -90,7 +90,7 @@
         targetPct: 52
       }), {
         price: 90097.09,
-        priceAsOf: '2026-11-24',
+        priceAsOf: '2026-11-25',
         priceSource: 'NAV/CCQ DCDS Dragon Capital cập nhật 22/11/2026 (vùng chiết khấu tốt)',
         valueBasis: 'price'
       }),
@@ -102,7 +102,7 @@
         targetPct: 20
       }), {
         price: 30982.76,
-        priceAsOf: '2026-11-24',
+        priceAsOf: '2026-11-25',
         priceSource: 'NAV/CCQ DCBF Dragon Capital cập nhật 22/11/2026 (+6,81% YTD)',
         valueBasis: 'price'
       })
@@ -162,7 +162,7 @@
       { d: '2026-11-18', v: 7607000, c: 7672000 },
       { d: '2026-11-22', v: 7555000, c: 7672000 }
     ];
-    s.lastSync = '2026-11-24T11:59:41.282Z';
+    s.lastSync = '2026-11-25T10:52:27.427Z';
     return s;
   }
 
