@@ -1,4 +1,4 @@
-const CACHE = 'my-hub-retire-v16';
+const CACHE = 'my-hub-retire-v20';
 const ASSETS = [
   './',
   './index.html',

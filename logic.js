@@ -43,29 +43,29 @@
     s.goal = { amount: 50000000, deadline: '2027-10-06' };
     s.monthlyContribution = 3750000;
     s.advisorBriefing = {
-      updatedAt: '25/11/2026',
-      headline: 'Hôm nay (25/11): NAV DCDS lùi sâu về ~90.097 ₫/CCQ (vùng gom rất đẹp). Lệnh DCBF 200k đã qua ngày khớp 19/11 — bạn mở DragonX xem số CCQ khớp để mình chốt sổ nhé!',
+      updatedAt: '26/11/2026',
+      headline: 'Hôm nay (26/11): VN-Index điều chỉnh mạnh về ~1.629 điểm kéo NAV DCDS chiết khấu về ~89.569 ₫/CCQ. Vì bạn mới có 400k ở DCDS (5,2%) nên hầu như không thiệt hại mà lại được MUA GIÁ RẺ cho kỳ lương tháng 12!',
       signals: [
         {
           code: 'DCDS',
           name: 'Quỹ cổ phiếu DCDS',
           action: 'buy',
-          badge: 'NÊN MUA GOM MẠNH',
-          reason: 'NAV điều chỉnh giảm về <b>90.097 ₫/CCQ</b> (rẻ hơn mức 91.633 ₫ tuần trước) và mới chiếm <b>5,2%</b> (mục tiêu 52%). Kỳ lương tháng 12 ưu tiên giải ngân <b>~2.150.000 ₫</b>.'
+          badge: 'CƠ HỘI GOM GIÁ CHIẾT KHẤU',
+          reason: 'Thị trường chung giảm mạnh giúp NAV lùi về <b>~89.569 ₫/CCQ</b> (rẻ hơn mức 92.133 ₫ đầu tháng). Bạn mới giữ <b>400k (5,2%)</b> nên rất lợi thế: kỳ lương tháng 12 rót <b>~2.150.000 ₫</b> sẽ gom được nhiều CCQ giá rẻ hơn.'
         },
         {
           code: 'DCBF',
           name: 'Quỹ trái phiếu DCBF',
           action: 'hold',
-          badge: 'ĐÃ QUA NGÀY KHỚP 19/11 · MUA ĐỀU',
-          reason: 'NAV tăng lên <b>30.983 ₫/CCQ</b> (+6,8% từ đầu năm). Lệnh <b>200.000 ₫</b> (261117002955) đã qua phiên khớp <b>19/11</b> (~6,46 CCQ) — hãy nhắn mình số CCQ thực nhận. Tháng 12 góp <b>~1.750.000 – 1.850.000 ₫</b>.'
+          badge: 'TĂNG ỔN ĐỊNH · MUA ĐỀU',
+          reason: 'Bất chấp chứng khoán đỏ lửa, trái phiếu DCBF vẫn tăng đều lên <b>~30.983 – 31.000 ₫/CCQ</b> (+6,8% từ đầu năm). Tháng 12 tiếp tục nạp <b>~1.750.000 – 1.850.000 ₫</b> làm đệm an toàn.'
         },
         {
           code: 'GOLD',
           name: 'Vàng 24K / Nhẫn 9999',
           action: 'stop',
           badge: 'KHÔNG MUA THÊM',
-          reason: 'Giá nhẫn 9999 mua vào <b>12.830.000 ₫/chỉ</b> · bán ra <b>13.330.000 ₫/chỉ</b> (chênh lệch mua–bán rộng <b>500.000 ₫/chỉ</b>) và Vàng đang chiếm <b>92,2%</b> vốn. Ngưng mua tiền mặt!'
+          reason: 'Giá nhẫn 9999 SJC tăng lên mức mua vào <b>12.950.000 ₫/chỉ</b> · bán ra <b>13.400.000 ₫/chỉ</b> (đang neo đỉnh cao và chiếm <b>92,2%</b> vốn). Tiếp tục giữ vàng hiện có làm khiên chắn, ngưng mua tiền mặt.'
         }
       ]
     };
@@ -77,9 +77,9 @@
         unit: 'chỉ',
         targetPct: 28
       }), {
-        price: 12830000,
-        priceAsOf: '2026-11-25',
-        priceSource: 'Giá mua vào vàng nhẫn 9999 BTMC/DOJI ngày 22/11/2026 (bán ra 13,33tr - Spread 500k/chỉ)',
+        price: 12950000,
+        priceAsOf: '2026-11-26',
+        priceSource: 'Giá mua vào vàng nhẫn 9999 SJC ngày 26/11/2026 (bán ra ~13,40tr/chỉ)',
         valueBasis: 'price'
       }),
       Object.assign(makeAsset({
@@ -89,9 +89,9 @@
         unit: 'CCQ',
         targetPct: 52
       }), {
-        price: 90097.09,
-        priceAsOf: '2026-11-25',
-        priceSource: 'NAV/CCQ DCDS Dragon Capital cập nhật 22/11/2026 (vùng chiết khấu tốt)',
+        price: 89568.86,
+        priceAsOf: '2026-11-26',
+        priceSource: 'NAV/CCQ DCDS Dragon Capital cập nhật 26/11/2026 (chiết khấu theo nhịp chỉnh VN-Index)',
         valueBasis: 'price'
       }),
       Object.assign(makeAsset({
@@ -102,8 +102,8 @@
         targetPct: 20
       }), {
         price: 30982.76,
-        priceAsOf: '2026-11-25',
-        priceSource: 'NAV/CCQ DCBF Dragon Capital cập nhật 22/11/2026 (+6,81% YTD)',
+        priceAsOf: '2026-11-26',
+        priceSource: 'NAV/CCQ DCBF Dragon Capital cập nhật 26/11/2026 (tăng ổn định ~6,8% YTD)',
         valueBasis: 'price'
       })
     ];
@@ -162,7 +162,7 @@
       { d: '2026-11-18', v: 7607000, c: 7672000 },
       { d: '2026-11-22', v: 7555000, c: 7672000 }
     ];
-    s.lastSync = '2026-11-25T10:52:27.427Z';
+    s.lastSync = '2026-11-22T21:22:00.000Z';
     return s;
   }
 
