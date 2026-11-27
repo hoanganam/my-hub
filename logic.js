@@ -43,8 +43,8 @@
     s.goal = { amount: 50000000, deadline: '2027-10-06' };
     s.monthlyContribution = 3750000;
     s.advisorBriefing = {
-      updatedAt: '26/11/2026',
-      headline: 'Hôm nay (26/11): VN-Index điều chỉnh mạnh về ~1.629 điểm kéo NAV DCDS chiết khấu về ~89.569 ₫/CCQ. Vì bạn mới có 400k ở DCDS (5,2%) nên hầu như không thiệt hại mà lại được MUA GIÁ RẺ cho kỳ lương tháng 12!',
+      updatedAt: '27/11/2026',
+      headline: 'Hôm nay (27/11): VN-Index điều chỉnh mạnh về ~1.629 điểm kéo NAV DCDS chiết khấu về ~89.569 ₫/CCQ. Vì bạn mới có 400k ở DCDS (5,2%) nên hầu như không thiệt hại mà lại được MUA GIÁ RẺ cho kỳ lương tháng 12!',
       signals: [
         {
           code: 'DCDS',
@@ -78,7 +78,7 @@
         targetPct: 28
       }), {
         price: 12950000,
-        priceAsOf: '2026-11-26',
+        priceAsOf: '2026-11-27',
         priceSource: 'Giá mua vào vàng nhẫn 9999 SJC ngày 26/11/2026 (bán ra ~13,40tr/chỉ)',
         valueBasis: 'price'
       }),
@@ -90,7 +90,7 @@
         targetPct: 52
       }), {
         price: 89568.86,
-        priceAsOf: '2026-11-26',
+        priceAsOf: '2026-11-27',
         priceSource: 'NAV/CCQ DCDS Dragon Capital cập nhật 26/11/2026 (chiết khấu theo nhịp chỉnh VN-Index)',
         valueBasis: 'price'
       }),
@@ -102,7 +102,7 @@
         targetPct: 20
       }), {
         price: 30982.76,
-        priceAsOf: '2026-11-26',
+        priceAsOf: '2026-11-27',
         priceSource: 'NAV/CCQ DCBF Dragon Capital cập nhật 26/11/2026 (tăng ổn định ~6,8% YTD)',
         valueBasis: 'price'
       })
@@ -162,7 +162,7 @@
       { d: '2026-11-18', v: 7607000, c: 7672000 },
       { d: '2026-11-22', v: 7555000, c: 7672000 }
     ];
-    s.lastSync = '2026-11-26T10:27:39.326Z';
+    s.lastSync = '2026-11-27T10:31:52.777Z';
     return s;
   }
 
